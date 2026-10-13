@@ -1,0 +1,2659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layover Ledger</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2B4C8C">
+<link rel="icon" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Layover Ledger">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#E9E6DC;
+    --surface:#FFFFFF;
+    --surface-2:#F4F1E7;
+    --ink:#1C2B2C;
+    --ink-soft:#5B6B66;
+    --ink-faint:#8B968F;
+    --border:#D8D2BF;
+    --border-strong:#C3BCA5;
+    --accent:#2B4C8C;
+    --accent-soft:#E4EAF5;
+    --accent-ink:#FFFFFF;
+    --warm:#B8451F;
+    --success:#0ca30c;
+    --critical:#c9372c;
+    --cat-1:#2a78d6; --cat-2:#eb6834; --cat-3:#1baf7a;
+    --cat-4:#eda100; --cat-5:#e87ba4; --cat-6:#008300; --cat-7:#4a3aa7;
+    --pay-1:#b8860b; --pay-2:#0f9e96; --pay-3:#b5502e;
+    --pay-4:#6a5acd; --pay-5:#d1478f; --pay-6:#5f8a1f;
+    --shadow: 0 1px 2px rgba(28,43,44,0.07), 0 8px 24px rgba(28,43,44,0.07);
+    --radius-s:8px; --radius-m:14px; --radius-l:22px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#101A19;
+      --surface:#1B2624;
+      --surface-2:#20302C;
+      --ink:#ECE7DA;
+      --ink-soft:#AEB8AF;
+      --ink-faint:#7C8985;
+      --border:#31413C;
+      --border-strong:#425049;
+      --accent:#7DA0E8;
+      --accent-soft:#233752;
+      --accent-ink:#0E1A17;
+      --warm:#E38A63;
+      --success:#3fc23f;
+      --critical:#e66767;
+      --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70;
+      --cat-4:#c98500; --cat-5:#d55181; --cat-6:#008300; --cat-7:#9085e9;
+      --pay-1:#b8802a; --pay-2:#219e96; --pay-3:#d9713f;
+      --pay-4:#8478d9; --pay-5:#d066a0; --pay-6:#71a029;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#101A19; --surface:#1B2624; --surface-2:#20302C;
+    --ink:#ECE7DA; --ink-soft:#AEB8AF; --ink-faint:#7C8985;
+    --border:#31413C; --border-strong:#425049;
+    --accent:#7DA0E8; --accent-soft:#233752; --accent-ink:#0E1A17;
+    --warm:#E38A63; --success:#3fc23f; --critical:#e66767;
+    --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70;
+    --cat-4:#c98500; --cat-5:#d55181; --cat-6:#008300; --cat-7:#9085e9;
+    --pay-1:#b8802a; --pay-2:#219e96; --pay-3:#d9713f;
+    --pay-4:#8478d9; --pay-5:#d066a0; --pay-6:#71a029;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing:border-box; }
+  /* Deliberately NOT height:100% on html/body: with box-sizing:border-box
+     that pins body's own box to the viewport height, so once its content
+     (#app) grows taller than one screen, body's bottom padding -- which is
+     how we reserve room for the fixed bottom dock -- gets capped away
+     instead of adding real scrollable space, letting the dock cover the
+     last row(s) of a long list. Auto height lets body grow with its
+     content so the reserved padding actually lands after everything. */
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Public Sans", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom: calc(180px + env(safe-area-inset-bottom,0px)); /* JS keeps this in sync with the dock's real height; this is just the pre-JS/no-JS fallback */
+  }
+  h1,h2,h3{ font-family:"Fraunces", Georgia, serif; margin:0; text-wrap:balance; }
+  button{ font-family:inherit; }
+  input,select{ font-family:inherit; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .eyebrow{ font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); }
+  .eyebrow-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .hero-actions{ display:flex; align-items:center; gap:2px; flex:0 0 auto; }
+  .trip-del, .trip-note-btn{
+    flex:0 0 auto; border:none; background:none; color:var(--ink-faint);
+    font-size:11px; font-weight:600; letter-spacing:.02em; padding:4px 6px;
+    cursor:pointer; border-radius:6px; text-transform:none;
+  }
+  .trip-del:hover{ color:var(--critical); }
+  .trip-del.confirming{ color:var(--critical); }
+  .trip-note-btn:hover{ color:var(--accent); }
+  .trip-note{ margin-top:16px; padding-top:14px; border-top:1px dashed var(--border); }
+  .trip-note-text{ font-size:13.5px; line-height:1.5; color:var(--ink-soft); white-space:pre-wrap; word-break:break-word; }
+  .trip-note-edit textarea{
+    width:100%; min-height:88px; border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px; font-size:13.5px; background:var(--surface-2); color:var(--ink);
+    font-family:inherit; resize:vertical;
+  }
+  .trip-note-actions{ display:flex; gap:8px; margin-top:8px; }
+
+  /* ---------- header ---------- */
+  header.top{
+    position:sticky; top:0; z-index:20;
+    padding: calc(16px + env(safe-area-inset-top,0px)) 20px 12px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{ display:flex; align-items:center; justify-content:space-between; gap:8px 12px; max-width:640px; margin:0 auto; flex-wrap:wrap; }
+  .brand h1{
+    font-size:27px; font-weight:500; letter-spacing:-0.01em; white-space:nowrap;
+    font-optical-sizing:auto;
+  }
+  .brand h1 .wm-accent{ font-style:italic; font-weight:600; color:var(--accent); }
+  .brand-right{ display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  .brand .tag{ font-size:12px; color:var(--ink-faint); white-space:nowrap; }
+  .theme-toggle, .ai-toggle, .account-toggle{
+    flex:0 0 auto; border:1px solid var(--border); background:var(--surface);
+    color:var(--ink-soft); border-radius:8px; padding:5px 10px; font-size:11px;
+    font-weight:600; cursor:pointer; letter-spacing:.02em;
+    max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .theme-toggle:hover, .ai-toggle:hover, .account-toggle:hover{ color:var(--accent); border-color:var(--accent); }
+  .ai-toggle[hidden]{ display:none; }
+
+  /* ---------- account sign-in gate ---------- */
+  .auth-gate{
+    position:fixed; inset:0; z-index:90; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    overflow-y:auto;
+  }
+  .auth-gate[hidden]{ display:none; }
+  .auth-card{ max-width:320px; width:100%; text-align:center; }
+  .auth-icon{ font-size:36px; margin-bottom:12px; }
+  .auth-card h2{ font-size:21px; margin-bottom:6px; }
+  .auth-card p{ font-size:13px; color:var(--ink-soft); margin:0 0 18px; }
+  .auth-card .field{ text-align:left; }
+  .auth-submit{
+    width:100%; margin-top:6px; background:var(--accent); color:var(--accent-ink);
+    border:none; border-radius:10px; padding:12px; font-weight:600; font-size:14.5px; cursor:pointer;
+  }
+  .auth-error{ color:var(--critical); font-size:12.5px; margin-top:10px; min-height:16px; }
+  .auth-switch, .auth-reset{
+    display:block; margin:16px auto 0; background:none; border:none; color:var(--ink-faint);
+    font-size:12px; text-decoration:underline; text-underline-offset:2px; cursor:pointer;
+  }
+  .auth-reset.confirming{ color:var(--critical); }
+  .auth-note{ font-size:11.5px; color:var(--ink-faint); margin-top:16px; line-height:1.5; }
+  .account-explain{ font-size:12.5px; color:var(--ink-soft); margin:-6px 0 16px; line-height:1.5; }
+  .account-signout-btn{
+    width:100%; margin-bottom:16px; background:var(--surface-2); color:var(--ink);
+    border:1px solid var(--border); border-radius:10px; padding:10px; font-weight:600;
+    font-size:13.5px; cursor:pointer;
+  }
+  .account-delete-btn{
+    width:100%; margin-top:6px; background:none; color:var(--critical);
+    border:1px solid var(--border); border-radius:10px; padding:10px; font-weight:600;
+    font-size:13px; cursor:pointer;
+  }
+  .account-delete-btn.confirming{ background:var(--critical); color:#fff; border-color:var(--critical); }
+
+
+  .trip-rail{
+    max-width:640px; margin:14px auto 0; padding:0 20px 2px;
+    display:flex; gap:10px; overflow-x:auto; scrollbar-width:none;
+  }
+  .trip-rail::-webkit-scrollbar{ display:none; }
+  .trip-chip{
+    position:relative; flex:0 0 auto;
+    display:flex; flex-direction:column; gap:2px;
+    padding:8px 16px 8px 22px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    cursor:pointer;
+    text-align:left;
+    color:var(--ink);
+  }
+  .trip-chip::before{
+    content:""; position:absolute; left:8px; top:50%; transform:translateY(-50%);
+    width:6px; height:6px; border-radius:50%;
+    background:var(--bg); border:1px solid var(--border-strong);
+  }
+  .trip-chip .name{ font-weight:600; font-size:13.5px; white-space:nowrap; }
+  .trip-chip .sum{ font-size:11px; color:var(--ink-faint); }
+  .trip-chip[aria-pressed="true"]{
+    background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+  }
+  .trip-chip[aria-pressed="true"] .sum{ color:var(--accent-ink); opacity:.78; }
+  .trip-chip[aria-pressed="true"]::before{ background:var(--accent-ink); border-color:var(--accent-ink); opacity:.5; }
+  .trip-chip.add{
+    border-style:dashed; color:var(--ink-soft); font-weight:600; font-size:13.5px;
+    padding-left:16px;
+  }
+  .trip-chip.add::before{ display:none; }
+
+  /* ---------- layout ---------- */
+  main{ max-width:640px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:22px; }
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-l); box-shadow:var(--shadow);
+    padding:22px;
+  }
+
+  /* ---------- tabs ---------- */
+  .tab-bar{
+    display:flex; gap:6px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:12px; padding:4px;
+  }
+  .tab-btn{
+    flex:1; border:none; background:none; color:var(--ink-soft);
+    font-family:inherit; font-size:13.5px; font-weight:600; padding:9px 10px;
+    border-radius:9px; cursor:pointer;
+  }
+  .tab-btn.active{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+  .tab-count{
+    display:inline-block; min-width:16px; padding:0 5px; margin-left:4px;
+    border-radius:20px; background:var(--accent-soft); color:var(--accent);
+    font-size:10.5px; font-weight:700; line-height:16px;
+  }
+  .tab-btn.active .tab-count{ background:var(--accent); color:var(--accent-ink); }
+
+  /* ---------- hero ---------- */
+  .hero .trip-name{ font-size:26px; font-weight:600; }
+  .hero .currency{ font-size:12px; color:var(--ink-faint); margin-top:2px; }
+  .hero .total{
+    display:block; font-family:"IBM Plex Mono", ui-monospace, monospace;
+    font-size:44px; font-weight:600; line-height:1.05; margin-top:14px; letter-spacing:-0.01em;
+    background:none; border:none; padding:0; color:inherit; text-align:left; cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .hero .total:hover{ color:var(--accent); }
+  .hero .total:active{ opacity:.7; }
+  .hero .total.alt{ color:var(--accent); }
+  .total-convert{
+    display:flex; align-items:center; gap:6px; margin-top:7px;
+    font-size:11.5px; color:var(--ink-faint);
+  }
+  .total-convert button{
+    background:none; border:none; color:var(--ink-faint); font-size:11.5px; padding:0;
+    cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+  }
+  .total-convert select{
+    border:1px solid var(--border); border-radius:7px; padding:3px 7px;
+    font-size:11px; background:var(--surface-2); color:var(--ink); font-family:"IBM Plex Mono",monospace;
+  }
+  .budget-row{ margin-top:16px; }
+  .budget-track{
+    height:8px; border-radius:5px; background:var(--surface-2); border:1px solid var(--border);
+    overflow:hidden;
+  }
+  .budget-fill{ height:100%; background:var(--accent); border-radius:5px; transition:width .3s ease; }
+  .budget-fill.over{ background:var(--critical); }
+  .budget-note{ display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12.5px; color:var(--ink-soft); }
+  .budget-note .flag{ font-weight:700; }
+  .budget-note.good .flag{ color:var(--success); }
+  .budget-note.bad .flag{ color:var(--critical); }
+
+  /* ---------- breakdown ---------- */
+  .section-title{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .section-title h2{ font-size:16px; font-weight:600; }
+  .stack{ display:flex; height:14px; border-radius:7px; overflow:hidden; background:var(--surface-2); }
+  .stack .seg{ height:100%; margin-right:2px; }
+  .stack .seg:last-child{ margin-right:0; }
+  .legend{ margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+  .legend-row{ display:flex; align-items:center; gap:10px; font-size:13.5px; }
+  .legend-row .dot{ width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .legend-row .lbl{ flex:1; color:var(--ink); }
+  .legend-row .pct{ color:var(--ink-faint); font-size:12px; width:34px; text-align:right; }
+  .legend-row .amt{ font-weight:600; min-width:74px; text-align:right; }
+
+  /* ---------- expenses list ---------- */
+  .expense-row{
+    display:flex; align-items:center; gap:12px;
+    padding:13px 0;
+    border-bottom:1px dashed var(--border);
+  }
+  .expense-row:last-child{ border-bottom:none; }
+  .expense-date{
+    font-size:11px; color:var(--ink-faint); min-width:46px; flex:0 0 auto; line-height:1.35;
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    background:none; border:none; padding:2px 4px 2px 0; cursor:pointer; text-align:left;
+  }
+  .expense-date .day{ color:var(--ink-soft); font-weight:600; }
+  .expense-date .time{ font-size:10px; color:var(--ink-faint); }
+  .expense-date:hover .day, .expense-date:hover .time{ color:var(--accent); }
+  .expense-cat{ flex:0 0 auto; }
+  .expense-cat .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .expense-mid{ flex:1; min-width:0; }
+  .expense-mid .cat-label{ font-size:13px; font-weight:600; }
+  .expense-mid .note{ font-size:12.5px; color:var(--ink-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .expense-mid .orig-fx{ font-size:11px; color:var(--ink-faint); margin-top:1px; }
+  .expense-amt{ font-weight:600; text-align:right; flex:0 0 auto; }
+  .expense-actions{ flex:0 0 auto; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .expense-edit-btn, .expense-del{
+    border:none; background:none; color:var(--ink-faint);
+    font-size:11.5px; font-weight:600; padding:6px 4px; cursor:pointer; border-radius:6px;
+  }
+  .expense-edit-btn:hover{ color:var(--accent); }
+  .expense-del:hover{ color:var(--critical); }
+  .expense-del.confirming{ color:var(--critical); }
+
+  .edit-save{ background:var(--accent); color:var(--accent-ink); border:none; border-radius:7px; padding:6px 10px; font-size:11.5px; font-weight:600; cursor:pointer; }
+  .edit-cancel{ background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--border) !important; border-radius:7px; padding:6px 10px; font-size:11.5px; font-weight:600; cursor:pointer; }
+
+  .empty{ text-align:center; padding:26px 10px; color:var(--ink-soft); }
+  .empty h3{ font-size:17px; margin-bottom:6px; color:var(--ink); }
+  .empty p{ font-size:13.5px; margin:0; }
+
+  .welcome{ text-align:center; padding:40px 20px; }
+  .welcome h2{ font-size:24px; margin-bottom:10px; }
+  .welcome p{ color:var(--ink-soft); font-size:14.5px; max-width:38ch; margin:0 auto 20px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--accent); color:var(--accent-ink);
+    border:none; border-radius:10px; padding:12px 20px;
+    font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .local-note{ font-size:11px; color:var(--ink-faint); text-align:center; margin-top:6px; }
+
+  /* ---------- bookings ---------- */
+  .add-booking-btn{ border:none; background:none; color:var(--accent); font-weight:600; font-size:13px; cursor:pointer; }
+  .booking-row{ display:flex; align-items:flex-start; gap:12px; padding:13px 0; border-bottom:1px dashed var(--border); }
+  .booking-row:last-child{ border-bottom:none; }
+  .booking-icon{ flex:0 0 auto; font-size:21px; line-height:1.3; width:26px; text-align:center; }
+  .booking-mid{ flex:1; min-width:0; }
+  .booking-title{ font-size:14px; font-weight:600; }
+  .booking-meta{ font-size:12px; color:var(--ink-faint); margin-top:2px; }
+  .booking-meta .sep{ margin:0 5px; }
+  .booking-mid .note{ font-size:12.5px; color:var(--ink-faint); margin-top:3px; white-space:pre-wrap; word-break:break-word; }
+  .booking-deadline{ font-size:11.5px; margin-top:4px; color:var(--ink-soft); }
+  .booking-deadline.warn{ color:var(--critical); font-weight:600; }
+  .booking-deadline.passed{ color:var(--ink-faint); }
+  .booking-flight-status{ display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .status-pill{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; background:var(--surface-2); color:var(--ink-soft); }
+  .status-pill.delayed, .status-pill.cancelled{ background:rgba(198,68,68,0.14); color:var(--critical); }
+  .status-pill.ontime{ background:rgba(58,140,90,0.14); color:var(--success); }
+  .booking-refresh-btn{ border:none; background:none; color:var(--accent); font-size:11.5px; font-weight:600; cursor:pointer; padding:2px 4px; }
+  .booking-refresh-btn:disabled{ opacity:.5; cursor:default; }
+  .booking-checked-at{ font-size:10.5px; color:var(--ink-faint); }
+  .booking-actions{ flex:0 0 auto; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  .booking-actions button{ border:none; background:none; font-size:11.5px; font-weight:600; padding:4px 4px; cursor:pointer; color:var(--ink-faint); }
+  .booking-actions button:hover{ color:var(--accent); }
+  .booking-actions button.booking-del:hover, .booking-actions button.booking-del.confirming{ color:var(--critical); }
+  .booking-type-select-row{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .booking-type-btn{ border:1px solid var(--border); background:var(--surface-2); color:var(--ink-soft); border-radius:20px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .booking-type-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .booking-form{ padding:12px 0; border-bottom:1px dashed var(--border); margin-bottom:6px; }
+  .booking-form .field textarea{
+    width:100%; border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+    font-size:13.5px; background:var(--surface-2); color:var(--ink); resize:vertical; min-height:56px; font-family:inherit;
+  }
+  .date-range-btn{
+    width:100%; text-align:left; border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px; font-size:14.5px; background:var(--surface-2); color:var(--ink);
+    font-family:inherit; cursor:pointer;
+  }
+  .date-range-popover{
+    margin-top:8px; border:1px solid var(--border); border-radius:12px; padding:10px;
+    background:var(--surface); box-shadow:var(--shadow);
+  }
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .cal-month-label{ font-size:13.5px; font-weight:600; }
+  .cal-nav{
+    border:none; background:var(--surface-2); color:var(--ink-soft); width:28px; height:28px;
+    border-radius:8px; font-size:16px; line-height:1; cursor:pointer;
+  }
+  .cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:2px; }
+  .cal-weekdays span{ text-align:center; font-size:10.5px; color:var(--ink-faint); font-weight:600; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .cal-day{
+    aspect-ratio:1; border:none; background:none; color:var(--ink); font-size:12.5px;
+    border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+  .cal-day.empty{ cursor:default; }
+  .cal-day:not(.empty):not(.range-start):not(.range-end):not(.in-range):hover{ background:var(--surface-2); }
+  .cal-day.in-range{ background:var(--accent-soft); border-radius:0; }
+  .cal-day.range-start, .cal-day.range-end{ background:var(--accent); color:var(--accent-ink); font-weight:600; }
+  .cal-hint{ font-size:11px; color:var(--ink-faint); margin:8px 0 0; }
+  .cal-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .cal-clear{ border:none; background:none; color:var(--ink-faint); font-size:12px; font-weight:600; cursor:pointer; padding:6px 4px; }
+  .cal-done{ padding:7px 16px; border-radius:8px; font-size:12.5px; border:none; cursor:pointer; }
+
+  /* ---------- add-expense dock ---------- */
+  .dock{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:var(--surface); border-top:1px solid var(--border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.06);
+  }
+  .dock-inner{ max-width:640px; margin:0 auto; }
+  .dock-row1{ display:flex; gap:8px; align-items:center; }
+  .dock-currency-sel{
+    font-family:"IBM Plex Mono",monospace; font-size:13.5px; color:var(--ink);
+    flex:0 0 auto; width:68px; border:1px solid var(--border); border-radius:10px;
+    padding:10px 6px; background:var(--surface-2);
+  }
+  .dock-amount{
+    flex:1 1 auto; min-width:0; border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px; font-size:18px; background:var(--surface-2); color:var(--ink);
+  }
+  .dock-cat{
+    flex:0 0 auto; border:1px solid var(--border); border-radius:10px;
+    padding:10px 10px; font-size:13px; background:var(--surface-2); color:var(--ink); max-width:118px;
+  }
+  .dock-submit{
+    flex:0 0 auto; width:44px; height:44px; border-radius:10px; border:none;
+    background:var(--accent); color:var(--accent-ink); font-size:20px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .dock-toggles{ display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; }
+  .dock-note-toggle, .dock-dt-toggle{
+    background:none; border:none; color:var(--ink-faint); font-size:12px; padding:2px;
+    cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+  }
+  .dock-note{
+    margin-top:8px; width:100%; border:1px solid var(--border); border-radius:10px;
+    padding:9px 12px; font-size:13.5px; background:var(--surface-2); color:var(--ink);
+  }
+  .dock-dt-row{ margin-top:8px; display:flex; gap:8px; }
+  .dock-dt-row[hidden]{ display:none; }
+  .dock-dt-row input{
+    flex:1 1 0; min-width:0; border:1px solid var(--border); border-radius:10px;
+    padding:9px 10px; font-size:13.5px; background:var(--surface-2); color:var(--ink);
+  }
+  .dock-convert-hint{ font-size:11.5px; color:var(--ink-faint); margin-top:6px; min-height:14px; }
+  .dock[hidden]{ display:none; }
+
+  .pay-method-btn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--ink-soft);
+    border-radius:9px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .pay-method-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .pay-method-btn.small{
+    padding:4px 9px; font-size:11px; border-radius:7px;
+  }
+  .dock-pay-row{ margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pay-row-label{ font-size:12px; color:var(--ink-faint); font-weight:600; margin-right:2px; }
+  .pay-card-sel{
+    flex:1 1 120px; min-width:0; border:1px solid var(--border); border-radius:10px;
+    padding:9px 10px; font-size:13.5px; background:var(--surface-2); color:var(--ink);
+  }
+  .pay-newcard{ display:flex; gap:8px; width:100%; }
+  .pay-newcard[hidden]{ display:none; }
+  .pay-newcard input{
+    flex:1 1 auto; min-width:0; border:1px solid var(--border); border-radius:10px;
+    padding:9px 12px; font-size:13.5px; background:var(--surface-2); color:var(--ink);
+  }
+  .pay-newcard button{
+    flex:0 0 auto; border:none; border-radius:10px; padding:9px 14px;
+    background:var(--accent); color:var(--accent-ink); font-weight:600; font-size:13px; cursor:pointer;
+  }
+  /* ---------- modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(16,20,19,0.45); z-index:50;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  @media (min-width:520px){ .overlay{ align-items:center; } }
+  .overlay[hidden]{ display:none; }
+  .modal{
+    background:var(--surface); width:100%; max-width:440px;
+    border-radius:20px 20px 0 0; padding:24px 22px calc(24px + env(safe-area-inset-bottom,0px));
+    box-shadow:var(--shadow);
+    max-height:min(88vh, 720px); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  @media (min-width:520px){ .modal{ border-radius:20px; max-height:80vh; } }
+  .modal h3{ font-size:19px; margin-bottom:18px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:7px; }
+  .field input, .field select{
+    width:100%; border:1px solid var(--border); border-radius:10px; padding:12px 13px;
+    font-size:15.5px; background:var(--surface-2); color:var(--ink);
+  }
+  .modal-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .modal-row .field{ flex:1 1 140px; min-width:0; }
+  @media (max-width:360px){
+    .modal-row{ flex-direction:column; gap:0; }
+    .modal-row .field{ flex:1 1 auto; width:100%; }
+  }
+  .trip-name-wrap{ position:relative; }
+  .trip-name-wrap input{ padding-right:42px; }
+  .trip-name-flag{
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    font-size:19px; line-height:1; pointer-events:none;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .btn-secondary{
+    flex:1; background:var(--surface-2); color:var(--ink); border:1px solid var(--border);
+    border-radius:10px; padding:11px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .btn-primary{
+    flex:1; background:var(--accent); color:var(--accent-ink); border:none;
+    border-radius:10px; padding:11px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+
+  @media (max-width:380px){
+    .dock-cat{ max-width:92px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Layover <span class="wm-accent">Ledger</span></h1>
+      <div class="brand-right">
+        <span class="tag">know the damage</span>
+        <button type="button" class="account-toggle" id="accountToggle" title="Your account">Account</button>
+        <button type="button" class="theme-toggle" id="themeToggle" title="Switch background color"></button>
+      </div>
+    </div>
+    <nav class="trip-rail" id="tripRail" aria-label="Trips"></nav>
+  </header>
+
+  <main id="main"></main>
+</div>
+
+<div class="auth-gate" id="authGate" hidden></div>
+
+<div class="overlay" id="accountOverlay" hidden></div>
+
+<div class="overlay" id="tripOverlay" hidden>
+  <form class="modal" id="tripForm">
+    <h3>New trip</h3>
+    <div class="field">
+      <label for="tripName">Trip name</label>
+      <div class="trip-name-wrap">
+        <input id="tripName" name="tripName" type="text" placeholder="e.g. Lisbon, October" required maxlength="60" autocomplete="off">
+        <span class="trip-name-flag" id="tripNameFlag" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="tripCurrency">Currency you'll log in</label>
+      <select id="tripCurrency" name="tripCurrency"></select>
+    </div>
+    <div class="field">
+      <label for="tripBudget">Budget (optional)</label>
+      <input id="tripBudget" name="tripBudget" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Leave blank to skip">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="tripCancel">Cancel</button>
+      <button type="submit" class="btn-primary">Start trip</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="expenseEditOverlay" hidden>
+  <form class="modal" id="expenseEditForm">
+    <h3>Edit expense</h3>
+    <div class="modal-row">
+      <div class="field" style="flex:1.5;">
+        <label for="ee_amount">Amount</label>
+        <input id="ee_amount" type="number" inputmode="decimal" min="0" step="0.01" required>
+      </div>
+      <div class="field">
+        <label for="ee_currency">Currency</label>
+        <select id="ee_currency"></select>
+      </div>
+    </div>
+    <div class="field" id="ee_rate_field" hidden>
+      <label for="ee_rate">Exchange rate <span id="ee_rate_hint" style="font-weight:400; text-transform:none; letter-spacing:0;"></span></label>
+      <input id="ee_rate" type="number" inputmode="decimal" min="0" step="0.0001">
+    </div>
+    <div class="field">
+      <label for="ee_category">Category</label>
+      <select id="ee_category"></select>
+    </div>
+    <div class="modal-row">
+      <div class="field">
+        <label for="ee_date">Date</label>
+        <input id="ee_date" type="date">
+      </div>
+      <div class="field">
+        <label for="ee_time">Time</label>
+        <input id="ee_time" type="time">
+      </div>
+    </div>
+    <div class="field">
+      <label for="ee_note">Note (optional)</label>
+      <input id="ee_note" type="text" maxlength="80" placeholder="what was it?">
+    </div>
+    <div class="field">
+      <label>Paid with</label>
+      <div class="dock-pay-row" id="eePayRow" style="margin-top:0;">
+        <button type="button" class="pay-method-btn" id="eePayCashBtn" data-method="cash">Cash</button>
+        <button type="button" class="pay-method-btn" id="eePayCardBtn" data-method="card">Card</button>
+        <select class="pay-card-sel" id="eeCardSel" hidden></select>
+        <div class="pay-newcard" id="eeNewCardRow" hidden>
+          <input type="text" id="eeNewCardName" maxlength="30" placeholder="name this card, e.g. Amex Gold">
+          <button type="button" id="eeSaveCardBtn">Save</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="expenseEditCancel">Cancel</button>
+      <button type="submit" class="btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="dock" id="dock" hidden>
+  <form class="dock-inner" id="expenseForm">
+    <div class="dock-row1">
+      <select class="dock-currency-sel mono" id="expenseCurrency" name="expenseCurrency"></select>
+      <input class="dock-amount mono" id="expenseAmount" name="expenseAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required>
+      <select class="dock-cat" id="expenseCategory" name="expenseCategory"></select>
+      <button type="submit" class="dock-submit" aria-label="Log this expense">+</button>
+    </div>
+    <div class="dock-convert-hint" id="convertHint"></div>
+    <div class="dock-pay-row" id="payRow">
+      <span class="pay-row-label">Paid with:</span>
+      <button type="button" class="pay-method-btn" id="payCashBtn" data-method="cash">Cash</button>
+      <button type="button" class="pay-method-btn" id="payCardBtn" data-method="card">Card</button>
+      <select class="pay-card-sel" id="expenseCard" hidden></select>
+      <div class="pay-newcard" id="payNewCardRow" hidden>
+        <input type="text" id="newCardName" maxlength="30" placeholder="name this card, e.g. Amex Gold">
+        <button type="button" id="saveCardBtn">Save</button>
+      </div>
+    </div>
+    <div class="dock-toggles">
+      <button type="button" class="dock-note-toggle" id="noteToggle">add a note</button>
+      <button type="button" class="dock-dt-toggle" id="dtToggle">date &amp; time</button>
+    </div>
+    <input class="dock-note" id="expenseNote" name="expenseNote" type="text" maxlength="80" placeholder="what was it?" hidden>
+    <div class="dock-dt-row" id="dtRow" hidden>
+      <input type="date" id="expenseDate" name="expenseDate">
+      <input type="time" id="expenseTime" name="expenseTime">
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  "use strict";
+
+  // Fill these in from your Supabase project (Settings -> API).
+  // The anon key is safe to ship in client code -- Row Level Security
+  // policies (see schema.sql) are what actually keep each account's
+  // data private, not secrecy of this key.
+  var SUPABASE_URL = "https://frmngfpsvlyvofoahffy.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_0lPFl_QQu7TgOEbd1ovLHQ_OymLc1jf";
+
+  var CATEGORIES = [
+    { id:"food",      label:"Food & Drink", color:"var(--cat-1)" },
+    { id:"transport",  label:"Transport",    color:"var(--cat-2)" },
+    { id:"cruise",    label:"Cruise",       color:"var(--cat-7)" },
+    { id:"lodging",   label:"Lodging",      color:"var(--cat-3)" },
+    { id:"shopping",  label:"Shopping",     color:"var(--cat-4)" },
+    { id:"activities",label:"Activities",   color:"var(--cat-5)" },
+    { id:"other",     label:"Other",        color:"var(--cat-6)" }
+  ];
+  var CAT_MAP = {};
+  CATEGORIES.forEach(function(c){ CAT_MAP[c.id] = c; });
+
+  var BOOKING_TYPES = [
+    { id:"hotel",      label:"Hotel",      icon:"🏨" },
+    { id:"flight",     label:"Flight",     icon:"✈️" },
+    { id:"cruise",     label:"Cruise",     icon:"🚢" },
+    { id:"attraction", label:"Attraction", icon:"🎫" }
+  ];
+  var BOOKING_TYPE_MAP = {};
+  BOOKING_TYPES.forEach(function(t){ BOOKING_TYPE_MAP[t.id] = t; });
+
+  var CURRENCIES = [
+    ["ILS","₪ ILS — Israeli Shekel"],
+    ["USD","$ USD — US Dollar"],
+    ["EUR","€ EUR — Euro"],
+    ["GBP","£ GBP — British Pound"],
+    ["JPY","¥ JPY — Japanese Yen"],
+    ["THB","฿ THB — Thai Baht"],
+    ["AED","AED — UAE Dirham"],
+    ["TRY","₺ TRY — Turkish Lira"],
+    ["INR","₹ INR — Indian Rupee"],
+    ["MXN","$ MXN — Mexican Peso"],
+    ["AUD","$ AUD — Australian Dollar"],
+    ["CHF","CHF — Swiss Franc"]
+  ];
+
+  function currencyDigits(code){ return code === "JPY" ? 0 : 2; }
+
+  function fmtMoney(amount, code){
+    try{
+      var digits = currencyDigits(code);
+      return new Intl.NumberFormat(undefined, { style:"currency", currency: code, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount);
+    }catch(e){
+      return code + " " + amount.toFixed(2);
+    }
+  }
+  function roundMoney(amount, code){
+    var f = Math.pow(10, currencyDigits(code));
+    return Math.round(amount * f) / f;
+  }
+  function currencySymbol(code){
+    try{
+      var parts = new Intl.NumberFormat(undefined,{style:"currency",currency:code}).formatToParts(0);
+      var p = parts.find(function(x){ return x.type === "currency"; });
+      return p ? p.value : code;
+    }catch(e){ return code; }
+  }
+  function todayISO(){
+    var d = new Date();
+    var tz = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - tz*60000);
+    return local.toISOString().slice(0,10);
+  }
+  function nowHM(){
+    var d = new Date();
+    return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+  function formatDateShort(iso){
+    var parts = (iso||"").split("-");
+    if(parts.length !== 3) return "—";
+    var d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+    var mon = d.toLocaleDateString(undefined, { month:"short" }).toUpperCase();
+    return mon + " " + Number(parts[2]);
+  }
+  function formatTimeShort(hm){
+    if(!hm) return "";
+    var parts = String(hm).split(":");
+    if(parts.length < 2) return "";
+    var d = new Date(); d.setHours(Number(parts[0])||0, Number(parts[1])||0, 0, 0);
+    return d.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit" });
+  }
+
+  /* ---------------- currency conversion ----------------
+     Published Artifacts run sandboxed and cannot make their own network
+     calls (no fetch/XHR to arbitrary hosts), so this page cannot look up
+     live or historical rates itself. RATES_USD is a real snapshot fetched
+     once (units of each currency per 1 USD) that Claude embeds at build
+     time; every expense stores the exact rate it was converted at, and
+     that rate is always editable per-entry (see the edit panel) so you can
+     correct it to the actual rate on the day of a purchase. */
+  var RATES_ASOF = "2026-09-17";
+  var RATES_USD = {
+    USD: 1, EUR: 0.869296, GBP: 0.744929, JPY: 155.579132, THB: 33.300712,
+    AED: 3.6725, TRY: 48.68476, INR: 96.021592, MXN: 17.192668,
+    AUD: 1.406483, CHF: 0.822575, ILS: 3.039763
+  };
+  function round4(n){ return Math.round(n * 10000) / 10000; }
+  function crossRate(fromCode, toCode){
+    var f = RATES_USD[fromCode], t = RATES_USD[toCode];
+    if(!f || !t) return 1;
+    return round4(t / f); // units of toCode per 1 unit of fromCode
+  }
+  function currencyOptionsHtml(selected){
+    return CURRENCIES.map(function(c){
+      return '<option value="' + c[0] + '"' + (c[0] === selected ? ' selected' : '') + '>' + c[0] + '</option>';
+    }).join("");
+  }
+
+  /* ---------------- country flags ----------------
+     While typing a trip name, if it contains a country name we show that
+     country's flag next to the field — a light, best-effort match (whole
+     words only), not a full geocoder. Sorted longest-name-first so e.g.
+     "South Korea" wins over a shorter overlapping name before "Korea" would. */
+  var COUNTRIES = [
+    ["Afghanistan","AF"],["Albania","AL"],["Algeria","DZ"],["Andorra","AD"],["Angola","AO"],
+    ["Antigua and Barbuda","AG"],["Argentina","AR"],["Armenia","AM"],["Australia","AU"],["Austria","AT"],
+    ["Azerbaijan","AZ"],["Bahamas","BS"],["Bahrain","BH"],["Bangladesh","BD"],["Barbados","BB"],
+    ["Belarus","BY"],["Belgium","BE"],["Belize","BZ"],["Benin","BJ"],["Bhutan","BT"],
+    ["Bolivia","BO"],["Bosnia and Herzegovina","BA"],["Botswana","BW"],["Brazil","BR"],["Brunei","BN"],
+    ["Bulgaria","BG"],["Burkina Faso","BF"],["Burundi","BI"],["Cabo Verde","CV"],["Cape Verde","CV"],
+    ["Cambodia","KH"],["Cameroon","CM"],["Canada","CA"],["Central African Republic","CF"],["Chad","TD"],
+    ["Chile","CL"],["China","CN"],["Colombia","CO"],["Comoros","KM"],["Congo","CG"],
+    ["Costa Rica","CR"],["Ivory Coast","CI"],["Cote d'Ivoire","CI"],["Croatia","HR"],["Cuba","CU"],
+    ["Cyprus","CY"],["Czech Republic","CZ"],["Czechia","CZ"],["Denmark","DK"],["Djibouti","DJ"],
+    ["Dominica","DM"],["Dominican Republic","DO"],["Ecuador","EC"],["Egypt","EG"],["El Salvador","SV"],
+    ["Equatorial Guinea","GQ"],["Eritrea","ER"],["Estonia","EE"],["Eswatini","SZ"],["Ethiopia","ET"],
+    ["Fiji","FJ"],["Finland","FI"],["France","FR"],["Gabon","GA"],["Gambia","GM"],
+    ["Georgia","GE"],["Germany","DE"],["Ghana","GH"],["Greece","GR"],["Grenada","GD"],
+    ["Guatemala","GT"],["Guinea-Bissau","GW"],["Guinea","GN"],["Guyana","GY"],["Haiti","HT"],
+    ["Honduras","HN"],["Hungary","HU"],["Iceland","IS"],["India","IN"],["Indonesia","ID"],
+    ["Iran","IR"],["Iraq","IQ"],["Ireland","IE"],["Israel","IL"],["Italy","IT"],
+    ["Jamaica","JM"],["Japan","JP"],["Jordan","JO"],["Kazakhstan","KZ"],["Kenya","KE"],
+    ["Kiribati","KI"],["Kuwait","KW"],["Kyrgyzstan","KG"],["Laos","LA"],["Latvia","LV"],
+    ["Lebanon","LB"],["Lesotho","LS"],["Liberia","LR"],["Libya","LY"],["Liechtenstein","LI"],
+    ["Lithuania","LT"],["Luxembourg","LU"],["Madagascar","MG"],["Malawi","MW"],["Malaysia","MY"],
+    ["Maldives","MV"],["Mali","ML"],["Malta","MT"],["Marshall Islands","MH"],["Mauritania","MR"],
+    ["Mauritius","MU"],["Mexico","MX"],["Micronesia","FM"],["Moldova","MD"],["Monaco","MC"],
+    ["Mongolia","MN"],["Montenegro","ME"],["Morocco","MA"],["Mozambique","MZ"],["Myanmar","MM"],
+    ["Burma","MM"],["Namibia","NA"],["Nauru","NR"],["Nepal","NP"],["Netherlands","NL"],
+    ["Holland","NL"],["New Zealand","NZ"],["Nicaragua","NI"],["Niger","NE"],["Nigeria","NG"],
+    ["North Korea","KP"],["North Macedonia","MK"],["Macedonia","MK"],["Norway","NO"],["Oman","OM"],
+    ["Pakistan","PK"],["Palau","PW"],["Palestine","PS"],["Panama","PA"],["Papua New Guinea","PG"],
+    ["Paraguay","PY"],["Peru","PE"],["Philippines","PH"],["Poland","PL"],["Portugal","PT"],
+    ["Qatar","QA"],["Romania","RO"],["Russia","RU"],["Rwanda","RW"],["Saint Kitts and Nevis","KN"],
+    ["Saint Lucia","LC"],["Saint Vincent and the Grenadines","VC"],["Samoa","WS"],["San Marino","SM"],
+    ["Sao Tome and Principe","ST"],["Saudi Arabia","SA"],["Senegal","SN"],["Serbia","RS"],["Seychelles","SC"],
+    ["Sierra Leone","SL"],["Singapore","SG"],["Slovakia","SK"],["Slovenia","SI"],["Solomon Islands","SB"],
+    ["Somalia","SO"],["South Africa","ZA"],["South Korea","KR"],["South Sudan","SS"],["Spain","ES"],
+    ["Sri Lanka","LK"],["Sudan","SD"],["Suriname","SR"],["Sweden","SE"],["Switzerland","CH"],
+    ["Syria","SY"],["Taiwan","TW"],["Tajikistan","TJ"],["Tanzania","TZ"],["Thailand","TH"],
+    ["Timor-Leste","TL"],["Togo","TG"],["Tonga","TO"],["Trinidad and Tobago","TT"],["Tunisia","TN"],
+    ["Turkiye","TR"],["Turkey","TR"],["Turkmenistan","TM"],["Tuvalu","TV"],["Uganda","UG"],
+    ["Ukraine","UA"],["United Arab Emirates","AE"],["UAE","AE"],["United Kingdom","GB"],["England","GB"],
+    ["Scotland","GB"],["Wales","GB"],["United States of America","US"],["United States","US"],["USA","US"],
+    ["Uruguay","UY"],["Uzbekistan","UZ"],["Vanuatu","VU"],["Vatican City","VA"],["Venezuela","VE"],
+    ["Vietnam","VN"],["Yemen","YE"],["Zambia","ZM"],["Zimbabwe","ZW"]
+  ].sort(function(a,b){ return b[0].length - a[0].length; });
+
+  function flagEmoji(iso2){
+    var chars = iso2.toUpperCase().split("").map(function(c){ return 127397 + c.charCodeAt(0); });
+    return String.fromCodePoint.apply(String, chars);
+  }
+  function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function detectCountryFlag(text){
+    if(!text) return "";
+    for(var i=0;i<COUNTRIES.length;i++){
+      var name = COUNTRIES[i][0];
+      var re = new RegExp("\\b" + escapeRegex(name) + "\\b", "i");
+      if(re.test(text)) return flagEmoji(COUNTRIES[i][1]);
+    }
+    return "";
+  }
+
+  /* ---------------- storage ---------------- */
+  /* A thin wrapper over the Supabase JS client that speaks the same
+     subscribe/add/update/delete interface the rendering code already
+     expects, so nothing below this section had to change. Every row
+     is scoped to the signed-in user's id; Row Level Security on the
+     server enforces that regardless of what this client sends. */
+
+  function camelToSnake(k){ return k.replace(/[A-Z]/g, function(m){ return "_" + m.toLowerCase(); }); }
+  function snakeToCamel(k){ return k.replace(/_([a-z])/g, function(_, c){ return c.toUpperCase(); }); }
+  function rowToObj(row){
+    var o = {};
+    for(var k in row){ if(k === "user_id") continue; o[snakeToCamel(k)] = row[k]; }
+    return o;
+  }
+  function objToRow(obj){
+    var row = {};
+    for(var k in obj){ row[camelToSnake(k)] = obj[k]; }
+    return row;
+  }
+
+  function SupabaseStore(sb, userId){
+    this.sb = sb;
+    this.userId = userId;
+    this.channels = [];
+  }
+  SupabaseStore.prototype._track = function(ch){ this.channels.push(ch); return ch; };
+  SupabaseStore.prototype.teardown = function(){
+    var sb = this.sb;
+    this.channels.forEach(function(ch){ try{ sb.removeChannel(ch); }catch(e){} });
+    this.channels = [];
+  };
+  SupabaseStore.prototype.subscribeTrips = function(cb){
+    var sb = this.sb, userId = this.userId, self = this;
+    function reload(){
+      sb.from("trips").select("*").eq("user_id", userId).order("created_at", { ascending: true })
+        .then(function(res){ cb((res.data || []).map(rowToObj)); });
+    }
+    reload();
+    var ch = sb.channel("trips-" + userId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trips", filter: "user_id=eq." + userId }, reload)
+      .subscribe();
+    this._track(ch);
+    return function(){ try{ sb.removeChannel(ch); }catch(e){} };
+  };
+  SupabaseStore.prototype.subscribeCards = function(cb){
+    var sb = this.sb, userId = this.userId;
+    function reload(){
+      sb.from("cards").select("*").eq("user_id", userId).order("created_at", { ascending: true })
+        .then(function(res){ cb((res.data || []).map(rowToObj)); });
+    }
+    reload();
+    var ch = sb.channel("cards-" + userId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cards", filter: "user_id=eq." + userId }, reload)
+      .subscribe();
+    this._track(ch);
+    return function(){ try{ sb.removeChannel(ch); }catch(e){} };
+  };
+  SupabaseStore.prototype.addCard = function(payload){
+    var row = objToRow(payload);
+    row.user_id = this.userId;
+    row.created_at = Date.now();
+    return this.sb.from("cards").insert(row).select().single().then(function(res){
+      if(res.error) throw res.error;
+      return res.data.id;
+    });
+  };
+  SupabaseStore.prototype.subscribeExpenses = function(tripId, cb){
+    var sb = this.sb, userId = this.userId;
+    function reload(){
+      sb.from("expenses").select("*").eq("user_id", userId).eq("trip_id", tripId).order("dt", { ascending: false })
+        .then(function(res){ cb((res.data || []).map(rowToObj)); });
+    }
+    reload();
+    var ch = sb.channel("expenses-" + tripId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: "trip_id=eq." + tripId }, reload)
+      .subscribe();
+    this._track(ch);
+    return function(){ try{ sb.removeChannel(ch); }catch(e){} };
+  };
+  SupabaseStore.prototype.addTrip = function(payload){
+    var row = objToRow(payload);
+    row.user_id = this.userId;
+    row.created_at = Date.now();
+    return this.sb.from("trips").insert(row).select().single().then(function(res){
+      if(res.error) throw res.error;
+      return res.data.id;
+    });
+  };
+  SupabaseStore.prototype.deleteTrip = function(id){
+    return this.sb.from("trips").delete().eq("id", id).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+  SupabaseStore.prototype.updateTrip = function(id, patch){
+    var row = objToRow(patch);
+    return this.sb.from("trips").update(row).eq("id", id).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+  SupabaseStore.prototype.addExpense = function(tripId, payload){
+    var row = objToRow(payload);
+    row.user_id = this.userId;
+    row.trip_id = tripId;
+    row.created_at = Date.now();
+    return this.sb.from("expenses").insert(row).select().single().then(function(res){
+      if(res.error) throw res.error;
+      return res.data.id;
+    });
+  };
+  SupabaseStore.prototype.deleteExpense = function(tripId, expId){
+    return this.sb.from("expenses").delete().eq("id", expId).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+  SupabaseStore.prototype.updateExpense = function(tripId, expId, patch){
+    var row = objToRow(patch);
+    return this.sb.from("expenses").update(row).eq("id", expId).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+
+  SupabaseStore.prototype.subscribeBookings = function(tripId, cb){
+    var sb = this.sb, userId = this.userId;
+    function reload(){
+      sb.from("bookings").select("*").eq("user_id", userId).eq("trip_id", tripId).order("created_at", { ascending: true })
+        .then(function(res){ cb((res.data || []).map(rowToObj)); });
+    }
+    reload();
+    var ch = sb.channel("bookings-" + tripId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: "trip_id=eq." + tripId }, reload)
+      .subscribe();
+    this._track(ch);
+    return function(){ try{ sb.removeChannel(ch); }catch(e){} };
+  };
+  SupabaseStore.prototype.addBooking = function(tripId, payload){
+    var row = objToRow(payload);
+    row.user_id = this.userId;
+    row.trip_id = tripId;
+    row.created_at = Date.now();
+    return this.sb.from("bookings").insert(row).select().single().then(function(res){
+      if(res.error) throw res.error;
+      return res.data.id;
+    });
+  };
+  SupabaseStore.prototype.deleteBooking = function(tripId, bookingId){
+    return this.sb.from("bookings").delete().eq("id", bookingId).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+  SupabaseStore.prototype.updateBooking = function(tripId, bookingId, patch){
+    var row = objToRow(patch);
+    return this.sb.from("bookings").update(row).eq("id", bookingId).then(function(res){
+      if(res.error) throw res.error;
+    });
+  };
+
+  /* ---------------- state ---------------- */
+
+  var store = null;
+  var sb = null;
+  var trips = [];
+  var activeTripId = null;
+  var expenses = [];
+  var unsubExpenses = null;
+  var bookings = [];
+  var unsubBookings = null;
+  var addingBooking = false;         // true while the "new booking" form is open
+  var newBookingType = "hotel";      // sticky type selection while that form is open
+  var editingBookingId = null;       // booking id whose edit form is open, or null
+  var editingBookingType = null;     // type override while editing an existing booking
+  var flightStatusChecking = {};     // bookingId -> true while a status check is in flight
+  var autoCheckedFlights = {};       // bookingId -> "YYYY-MM-DD" of the last automatic check
+  var draftRestoreAttempted = false; // only try restoring an interrupted booking form once, at boot
+  var bookingCalOpenFor = null;      // form key whose date-range calendar popover is open, or null
+  var bookingCalViewMonth = null;    // Date (first-of-month) the open calendar is showing
+  var bookingCalPendingStart = null; // ISO date mid-selection in the open calendar, before "Done"
+  var bookingCalPendingEnd = null;
+
+  var elTripRail = document.getElementById("tripRail");
+  var elMain = document.getElementById("main");
+  var elDock = document.getElementById("dock");
+  var elTripOverlay = document.getElementById("tripOverlay");
+  var elTripForm = document.getElementById("tripForm");
+  var elDockCurrencySel = null; // resolved lazily, populateSelects() fills it
+  var editingExpenseId = null;
+  var editingTripNote = null; // trip id currently showing the note editor, or null
+  var activeTripTab = "expenses"; // "expenses" | "bookings" -- which panel shows below the hero
+  var heroShowingAlt = false;
+  var heroAltCode = null;
+  var heroAltForTrip = null;
+
+  var cards = []; // {id, name} — shared across all trips
+  var paymentMethod = "cash";     // sticky default for the next dock entry
+  var paymentCardId = null;
+  var paymentCardLabel = null;
+  var editingPaymentMethod = null;   // temp override while a row is in edit mode
+  var editingPaymentCardId = null;
+
+  function cardById(id){
+    for(var i=0;i<cards.length;i++){ if(cards[i].id === id) return cards[i]; }
+    return null;
+  }
+  function cardOptionsHtml(selectedId){
+    var opts = cards.map(function(c){
+      return '<option value="' + c.id + '"' + (c.id === selectedId ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>';
+    }).join("");
+    opts += '<option value="__new__">+ Add a card…</option>';
+    return opts;
+  }
+
+  function activeTrip(){
+    for(var i=0;i<trips.length;i++){ if(trips[i].id === activeTripId) return trips[i]; }
+    return null;
+  }
+
+  function switchActiveTrip(id){
+    activeTripId = id;
+    editingTripNote = null;
+    activeTripTab = "expenses";
+    addingBooking = false;
+    editingBookingId = null;
+    if(unsubExpenses){ unsubExpenses(); unsubExpenses = null; }
+    if(unsubBookings){ unsubBookings(); unsubBookings = null; }
+    expenses = [];
+    bookings = [];
+    if(id){
+      unsubExpenses = store.subscribeExpenses(id, function(list){
+        expenses = list;
+        renderMain();
+      });
+      unsubBookings = store.subscribeBookings(id, function(list){
+        bookings = list;
+        renderMain();
+        maybeAutoCheckFlights();
+      });
+    }
+    renderAll();
+  }
+
+  function selectTrip(id){
+    if(id === activeTripId) return;
+    switchActiveTrip(id);
+  }
+
+  function onTripsUpdate(list){
+    trips = list;
+    if(!activeTripId || !trips.some(function(t){ return t.id === activeTripId; })){
+      var next = trips.length ? trips[trips.length-1].id : null;
+      switchActiveTrip(next);
+      restoreBookingDraftOnBoot(next);
+      return;
+    }
+    renderAll();
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  function renderAll(){
+    renderTripRail();
+    renderMain();
+    renderDock();
+  }
+
+  function renderTripRail(){
+    var html = "";
+    trips.forEach(function(t){
+      var pressed = t.id === activeTripId;
+      html += '<button type="button" class="trip-chip" data-trip="' + t.id + '" aria-pressed="' + pressed + '">' +
+        '<span class="name">' + escapeHtml(t.name) + '</span>' +
+        '<span class="sum mono">' + t.currency + '</span>' +
+        '</button>';
+    });
+    html += '<button type="button" class="trip-chip add" id="addTripBtn">+ Trip</button>';
+    elTripRail.innerHTML = html;
+
+    Array.prototype.forEach.call(elTripRail.querySelectorAll("[data-trip]"), function(btn){
+      btn.addEventListener("click", function(){ selectTrip(btn.getAttribute("data-trip")); });
+    });
+    document.getElementById("addTripBtn").addEventListener("click", openTripModal);
+  }
+
+  // The dock's height isn't fixed -- it grows whenever its note/date-time
+  // toggles or the "add a card" row open -- but the page reserved a fixed
+  // guess of space at the bottom for it, so the dock could grow taller than
+  // that reserved space and cover the last expense row(s). Keep the real
+  // reservation in sync with the dock's actual rendered height instead.
+  function syncDockSpacing(){
+    if(elDock.hidden){ document.body.style.paddingBottom = ""; return; }
+    var h = elDock.getBoundingClientRect().height;
+    if(h > 0) document.body.style.paddingBottom = (h + 16) + "px";
+  }
+  if(window.ResizeObserver){
+    new ResizeObserver(function(){ syncDockSpacing(); }).observe(elDock);
+  } else {
+    window.addEventListener("resize", syncDockSpacing);
+    window.addEventListener("orientationchange", syncDockSpacing);
+  }
+
+  var dockDefaultsForTrip = null;
+  function renderDock(){
+    var trip = activeTrip();
+    if(!trip || activeTripTab !== "expenses"){ elDock.hidden = true; syncDockSpacing(); return; }
+    elDock.hidden = false;
+    syncDockSpacing();
+    // Only reset the entry currency / date / time when we've switched onto
+    // a different trip — never stomp on values the person is mid-typing.
+    if(dockDefaultsForTrip !== trip.id){
+      dockDefaultsForTrip = trip.id;
+      if(elDockCurrencySel) elDockCurrencySel.value = trip.currency;
+      var dateEl = document.getElementById("expenseDate");
+      var timeEl = document.getElementById("expenseTime");
+      if(dateEl) dateEl.value = todayISO();
+      if(timeEl) timeEl.value = nowHM();
+      updateConvertHint();
+    }
+    if(typeof refreshDockPaymentUI === "function") refreshDockPaymentUI();
+  }
+
+  function updateConvertHint(){
+    var trip = activeTrip();
+    var hint = document.getElementById("convertHint");
+    if(!trip || !hint) return;
+    var sel = document.getElementById("expenseCurrency");
+    var amtEl = document.getElementById("expenseAmount");
+    var chosen = sel ? sel.value : trip.currency;
+    if(!chosen || chosen === trip.currency){
+      hint.textContent = "";
+      return;
+    }
+    var amount = Number(amtEl && amtEl.value) || 0;
+    var rate = crossRate(chosen, trip.currency);
+    if(amount > 0){
+      hint.textContent = "≈ " + fmtMoney(roundMoney(amount * rate, trip.currency), trip.currency) + " at today's rate (1 " + chosen + " = " + rate.toFixed(4) + " " + trip.currency + ")";
+    } else {
+      hint.textContent = "1 " + chosen + " ≈ " + rate.toFixed(4) + " " + trip.currency + " as of " + RATES_ASOF + " — editable per entry";
+    }
+  }
+
+  /* ---------------- bookings (hotel / flight / cruise / attraction) ----
+     Trip-level reservations, separate from the expense log: what's booked,
+     its confirmation number, its dates, and (for flights) a live status
+     check via a Supabase Edge Function — see checkFlightStatus below and
+     the flight-status function delivered alongside this file. */
+
+  function daysUntil(dateStr){
+    if(!dateStr) return null;
+    var d = new Date(dateStr + "T00:00:00");
+    if(isNaN(d.getTime())) return null;
+    var now = new Date();
+    now.setHours(0,0,0,0);
+    return Math.round((d - now) / 86400000);
+  }
+
+  function bookingDeadlineHtml(b){
+    if(!b.cancellationDeadline) return "";
+    var days = daysUntil(b.cancellationDeadline);
+    if(days == null) return "";
+    var label = formatDateShort(b.cancellationDeadline);
+    if(days < 0) return '<div class="booking-deadline passed">Cancellation window closed (' + label + ')</div>';
+    if(days <= 3) return '<div class="booking-deadline warn">Cancel by ' + label + ' to avoid charges' + (days === 0 ? " — today" : "") + '</div>';
+    return '<div class="booking-deadline">Free cancellation until ' + label + '</div>';
+  }
+
+  function bookingDatesHtml(b){
+    if(!b.startDate) return "";
+    var out = formatDateShort(b.startDate);
+    if(b.endDate && b.endDate !== b.startDate) out += " – " + formatDateShort(b.endDate);
+    return out;
+  }
+
+  function relativeCheckedAt(ts){
+    if(!ts) return "";
+    var mins = Math.round((Date.now() - ts) / 60000);
+    if(mins < 1) return "just now";
+    if(mins < 60) return mins + "m ago";
+    var hrs = Math.round(mins / 60);
+    if(hrs < 24) return hrs + "h ago";
+    return Math.round(hrs / 24) + "d ago";
+  }
+
+  function flightStatusHtml(b){
+    var checking = !!flightStatusChecking[b.id];
+    var s = b.lastStatus;
+    var pill = "";
+    if(s && s.status){
+      var cls = "status-pill";
+      var norm = String(s.status).toLowerCase();
+      if(norm === "cancelled" || norm === "diverted") cls += " cancelled";
+      else if((s.departure && s.departure.delayMinutes > 15) || (s.arrival && s.arrival.delayMinutes > 15)) cls += " delayed";
+      else if(norm === "active" || norm === "landed" || norm === "scheduled") cls += " ontime";
+      var delayBit = "";
+      var dep = s.departure && s.departure.delayMinutes;
+      var arr = s.arrival && s.arrival.delayMinutes;
+      var maxDelay = Math.max(dep||0, arr||0);
+      if(maxDelay > 0) delayBit = " · delayed " + maxDelay + "m";
+      pill = '<span class="' + cls + '">' + escapeHtml(s.status) + delayBit + '</span>';
+    }
+    var checkedLabel = s && s.checkedAt ? '<span class="booking-checked-at">checked ' + relativeCheckedAt(s.checkedAt) + '</span>' : "";
+    var btnLabel = checking ? "Checking…" : (s ? "Refresh" : "Check status");
+    return '<div class="booking-flight-status">' + pill +
+      '<button type="button" class="booking-refresh-btn" data-flightcheck="' + b.id + '"' + (checking ? " disabled" : "") + '>' + btnLabel + '</button>' +
+      checkedLabel +
+      '</div>';
+  }
+
+  // The flight-status Edge Function returns its real error as a JSON body
+  // (e.g. {error:"AVIATIONSTACK_KEY is not configured..."}) on a non-2xx
+  // response, but supabase-js only exposes that through a FunctionsHttpError's
+  // `.context` (the raw Response) -- `error.message` on its own is just a
+  // generic "Edge Function returned a non-2xx status code", which is what a
+  // plain describeSupabaseError(err) would show. Read the body text (once,
+  // since a Response can only be read once) and fall back through: our
+  // function's own {error} JSON -> raw response text (catches a deploy-level
+  // crash or an unconfigured-function page, which isn't JSON at all) ->
+  // whatever describeSupabaseError can get from the error object itself.
+  function describeFlightStatusError(err, cb){
+    if(err && err.context && typeof err.context.text === "function"){
+      err.context.text().then(function(raw){
+        var parsed = null;
+        try{ parsed = JSON.parse(raw); }catch(e){}
+        var msg = (parsed && parsed.error) || (raw && raw.trim() ? raw.trim().slice(0,200) : "") || describeSupabaseError(err);
+        cb(msg || "Couldn't check that flight's status.");
+      }).catch(function(){
+        cb(describeSupabaseError(err) || "Couldn't check that flight's status.");
+      });
+      return;
+    }
+    cb(describeSupabaseError(err) || "Couldn't check that flight's status.");
+  }
+
+  function checkFlightStatus(b){
+    if(!b || !b.flightNumber) return;
+    if(!sb || !sb.functions || typeof sb.functions.invoke !== "function"){
+      showToast("Live flight status isn't set up yet — see SETUP.md.");
+      return;
+    }
+    if(flightStatusChecking[b.id]) return;
+    flightStatusChecking[b.id] = true;
+    renderMain();
+    sb.functions.invoke("flight-status", { body: { flight_iata: b.flightNumber, date: b.startDate } })
+      .then(function(res){
+        flightStatusChecking[b.id] = false;
+        var data = res && res.data;
+        if(res && res.error){
+          describeFlightStatusError(res.error, function(msg){ showToast(msg); });
+          renderMain();
+          return;
+        }
+        if(!data || data.error){
+          showToast((data && data.error) || "Couldn't check that flight's status.");
+          renderMain();
+          return;
+        }
+        var status = Object.assign({}, data, { checkedAt: Date.now() });
+        bookings = bookings.map(function(x){ return x.id === b.id ? Object.assign({}, x, { lastStatus: status }) : x; });
+        renderMain();
+        if(store) store.updateBooking(b.tripId, b.id, { lastStatus: status }).catch(function(err){ console.error(err); });
+      })
+      .catch(function(err){
+        flightStatusChecking[b.id] = false;
+        console.error(err);
+        describeFlightStatusError(err, function(msg){ showToast(msg); });
+        renderMain();
+      });
+  }
+
+  function maybeAutoCheckFlights(){
+    var today = todayISO();
+    bookings.forEach(function(b){
+      if(b.type !== "flight" || !b.flightNumber || !b.startDate) return;
+      var days = daysUntil(b.startDate);
+      if(days == null || days < -2 || days > 2) return; // only near the travel dates
+      if(autoCheckedFlights[b.id] === today) return;
+      autoCheckedFlights[b.id] = today;
+      checkFlightStatus(b);
+    });
+  }
+
+  /* ---- booking drafts: survive an unexpected reload -- e.g. the phone
+     reclaims a backgrounded tab while you've switched to Mail to copy a
+     confirmation number -- by mirroring the in-progress form to
+     localStorage as you type, and restoring it the next time the app
+     opens. Only one booking form can be open at a time, so one slot. ---- */
+  function saveBookingDraft(tripId, key, data){
+    try{ localStorage.setItem("llBookingDraft", JSON.stringify({ tripId: tripId, key: key, data: data, savedAt: Date.now() })); }catch(e){}
+  }
+  function readBookingDraftRaw(){
+    try{ var raw = localStorage.getItem("llBookingDraft"); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+  }
+  function loadBookingDraft(tripId, key){
+    var raw = readBookingDraftRaw();
+    return (raw && raw.tripId === tripId && raw.key === key) ? raw.data : null;
+  }
+  function clearBookingDraft(){
+    try{ localStorage.removeItem("llBookingDraft"); }catch(e){}
+  }
+  function captureBookingFormValues(key, typeOverride){
+    function get(id){ var el = document.getElementById(id); return el ? el.value : undefined; }
+    return {
+      type: typeOverride,
+      title: get("bk_title_"+key) || "",
+      confirmationNumber: get("bk_conf_"+key) || "",
+      startDate: get("bk_start_"+key) || "",
+      endDate: get("bk_end_"+key) || "",
+      cancellationDeadline: get("bk_cancel_"+key) || "",
+      notes: get("bk_notes_"+key) || "",
+      flightNumber: get("bk_flightno_"+key) || ""
+    };
+  }
+  function restoreBookingDraftOnBoot(tripId){
+    if(draftRestoreAttempted || !tripId) return;
+    draftRestoreAttempted = true;
+    var raw = readBookingDraftRaw();
+    if(!raw || raw.tripId !== tripId) return;
+    if(raw.key === "new"){
+      addingBooking = true;
+      newBookingType = (raw.data && raw.data.type) || "hotel";
+    } else {
+      editingBookingId = raw.key;
+      editingBookingType = (raw.data && raw.data.type) || null;
+      addingBooking = false;
+    }
+    renderMain();
+    showToast("Picked up where you left off on a booking.", "info");
+  }
+
+  /* ---- date-range picker (hotel / cruise / attraction) -- pick the
+     start and end date together in one calendar instead of two separate
+     native date fields. Flights keep a single native date input, since
+     they only need a departure date. ---- */
+  function pad2(n){ return n < 10 ? "0"+n : ""+n; }
+  function isoOf(y,m,d){ return y + "-" + pad2(m+1) + "-" + pad2(d); }
+  function formatShortDate(iso){
+    if(!iso) return "";
+    var p = iso.split("-");
+    var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric" });
+  }
+  function dateRangeButtonLabel(start, end){
+    if(!start) return "Select dates";
+    if(!end || end === start) return formatShortDate(start);
+    return formatShortDate(start) + " → " + formatShortDate(end);
+  }
+  function dateRangeCalendarHtml(key, start, end){
+    var view = bookingCalViewMonth || (start ? new Date(start+"T00:00:00") : new Date());
+    view = new Date(view.getFullYear(), view.getMonth(), 1);
+    var monthLabel = view.toLocaleDateString(undefined, { month:"long", year:"numeric" });
+    var firstWeekday = view.getDay();
+    var daysInMonth = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+    var cells = [];
+    for(var i=0;i<firstWeekday;i++){ cells.push('<span class="cal-day empty"></span>'); }
+    for(var d=1; d<=daysInMonth; d++){
+      var iso = isoOf(view.getFullYear(), view.getMonth(), d);
+      var cls = "cal-day";
+      if(start && end && iso > start && iso < end) cls += " in-range";
+      if(start && iso === start) cls += " range-start";
+      if(end && iso === end) cls += " range-end";
+      cells.push('<button type="button" class="' + cls + '" data-calday="' + iso + '" data-calfor="' + key + '">' + d + '</button>');
+    }
+    var weekdays = ["S","M","T","W","T","F","S"].map(function(w){ return '<span>'+w+'</span>'; }).join("");
+    return '<div class="date-range-popover">' +
+      '<div class="cal-header">' +
+        '<button type="button" class="cal-nav" data-calnav="-1" data-calfor="' + key + '">‹</button>' +
+        '<span class="cal-month-label">' + monthLabel + '</span>' +
+        '<button type="button" class="cal-nav" data-calnav="1" data-calfor="' + key + '">›</button>' +
+      '</div>' +
+      '<div class="cal-weekdays">' + weekdays + '</div>' +
+      '<div class="cal-grid">' + cells.join("") + '</div>' +
+      '<p class="cal-hint">Tap a start day, then an end day — or just one day for a single-day booking.</p>' +
+      '<div class="cal-actions">' +
+        '<button type="button" class="cal-clear" data-calclear="' + key + '">Clear</button>' +
+        '<button type="button" class="edit-save cal-done" data-caldone="' + key + '">Done</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function bookingFormHtml(key, type, existing){
+    var draft = loadBookingDraft(activeTripId, key);
+    var b = Object.assign({}, existing || {}, draft || {});
+    var typeButtons = BOOKING_TYPES.map(function(t){
+      return '<button type="button" class="booking-type-btn' + (type === t.id ? ' active' : '') + '" data-booktype="' + t.id + '" data-booktypefor="' + key + '">' + t.icon + ' ' + t.label + '</button>';
+    }).join("");
+    return '<div class="booking-form" data-bookform="' + key + '">' +
+      '<div class="booking-type-select-row">' + typeButtons + '</div>' +
+      '<div class="field"><label for="bk_title_' + key + '">Name</label>' +
+        '<input id="bk_title_' + key + '" type="text" maxlength="80" placeholder="e.g. Hilton Lisbon" value="' + escapeHtml(b.title||"") + '"></div>' +
+      '<div class="field"><label for="bk_conf_' + key + '">Confirmation / reservation #</label>' +
+        '<input id="bk_conf_' + key + '" type="text" maxlength="60" value="' + escapeHtml(b.confirmationNumber||"") + '"></div>' +
+      (type === "flight" ? (
+        '<div class="field"><label for="bk_flightno_' + key + '">Flight number</label>' +
+          '<input id="bk_flightno_' + key + '" type="text" maxlength="10" placeholder="e.g. TP123" value="' + escapeHtml(b.flightNumber||"") + '"></div>'
+      ) : "") +
+      (type === "flight" ? (
+        '<div class="field"><label for="bk_start_' + key + '">Departure date</label>' +
+          '<input id="bk_start_' + key + '" type="date" value="' + (b.startDate||"") + '"></div>'
+      ) : (
+        '<div class="field"><label>Dates</label>' +
+          '<button type="button" class="date-range-btn" data-bookdaterange="' + key + '">' + dateRangeButtonLabel(b.startDate, b.endDate) + '</button>' +
+          (bookingCalOpenFor === key ? dateRangeCalendarHtml(key, bookingCalPendingStart, bookingCalPendingEnd) : "") +
+          '<input type="hidden" id="bk_start_' + key + '" value="' + (b.startDate||"") + '">' +
+          '<input type="hidden" id="bk_end_' + key + '" value="' + (b.endDate||"") + '">' +
+        '</div>'
+      )) +
+      '<div class="field"><label for="bk_cancel_' + key + '">Free cancellation until (optional)</label>' +
+        '<input id="bk_cancel_' + key + '" type="date" value="' + (b.cancellationDeadline||"") + '"></div>' +
+      '<div class="field"><label for="bk_notes_' + key + '">Notes (optional)</label>' +
+        '<textarea id="bk_notes_' + key + '" maxlength="1000" placeholder="room type, seat numbers, contact info…">' + escapeHtml(b.notes||"") + '</textarea></div>' +
+      '<div class="trip-note-actions">' +
+        '<button type="button" class="edit-save" data-booksave="' + key + '">Save</button>' +
+        '<button type="button" class="edit-cancel" data-bookcancel="' + key + '">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderBookingsSection(trip){
+    var html = '<section class="card bookings">';
+    html += '<div class="section-title"><h2>Bookings</h2>' +
+      (addingBooking ? "" : '<button type="button" class="add-booking-btn" id="addBookingBtn">+ Add</button>') +
+      '</div>';
+    if(addingBooking){
+      html += bookingFormHtml("new", newBookingType, null);
+    }
+    if(!bookings.length && !addingBooking){
+      html += '<div class="empty"><h3>Nothing booked yet</h3><p>Save your hotel, flight, cruise, or attraction reservations here — confirmation numbers, dates, and cancellation deadlines all in one place.</p></div>';
+    } else {
+      bookings.forEach(function(b){
+        if(b.id === editingBookingId){
+          html += bookingFormHtml(b.id, editingBookingType || b.type, b);
+          return;
+        }
+        var meta = BOOKING_TYPE_MAP[b.type] || BOOKING_TYPE_MAP.hotel;
+        html += '<div class="booking-row" data-booking="' + b.id + '">' +
+          '<div class="booking-icon">' + meta.icon + '</div>' +
+          '<div class="booking-mid">' +
+            '<div class="booking-title">' + escapeHtml(b.title || meta.label) + '</div>' +
+            '<div class="booking-meta">' +
+              (b.confirmationNumber ? escapeHtml(b.confirmationNumber) + '<span class="sep">·</span>' : "") +
+              (b.type === "flight" && b.flightNumber ? escapeHtml(b.flightNumber) + '<span class="sep">·</span>' : "") +
+              bookingDatesHtml(b) +
+            '</div>' +
+            bookingDeadlineHtml(b) +
+            (b.notes ? '<div class="note">' + escapeHtml(b.notes) + '</div>' : "") +
+            (b.type === "flight" ? flightStatusHtml(b) : "") +
+          '</div>' +
+          '<div class="booking-actions">' +
+            '<button type="button" data-bookedit="' + b.id + '">Edit</button>' +
+            '<button type="button" class="booking-del" data-bookdel="' + b.id + '">Delete</button>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+    html += '</section>';
+    return html;
+  }
+
+  function wireBookings(trip){
+    var addBtn = document.getElementById("addBookingBtn");
+    if(addBtn){
+      addBtn.addEventListener("click", function(){
+        addingBooking = true;
+        newBookingType = "hotel";
+        renderMain();
+      });
+    }
+    var openFormEl = elMain.querySelector('[data-bookform]');
+    if(openFormEl){
+      var openKey = openFormEl.getAttribute('data-bookform');
+      var persistOpenDraft = function(){
+        var typeNow = openKey === "new" ? newBookingType : (editingBookingType || (bookings.filter(function(x){ return x.id === openKey; })[0]||{}).type || "hotel");
+        saveBookingDraft(trip.id, openKey, captureBookingFormValues(openKey, typeNow));
+      };
+      openFormEl.addEventListener('input', persistOpenDraft);
+      openFormEl.addEventListener('change', persistOpenDraft);
+    }
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-booktype]"), function(btn){
+      btn.addEventListener("click", function(){
+        var type = btn.getAttribute("data-booktype");
+        var forKey = btn.getAttribute("data-booktypefor");
+        saveBookingDraft(trip.id, forKey, captureBookingFormValues(forKey, type));
+        if(forKey === "new") newBookingType = type;
+        else editingBookingType = type;
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-bookedit]"), function(btn){
+      btn.addEventListener("click", function(){
+        editingBookingId = btn.getAttribute("data-bookedit");
+        editingBookingType = null;
+        addingBooking = false;
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-bookcancel]"), function(btn){
+      btn.addEventListener("click", function(){
+        clearBookingDraft();
+        bookingCalOpenFor = null;
+        addingBooking = false;
+        editingBookingId = null;
+        editingBookingType = null;
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-booksave]"), function(btn){
+      btn.addEventListener("click", function(){
+        var key = btn.getAttribute("data-booksave");
+        var isNew = key === "new";
+        var type = isNew ? newBookingType : (editingBookingType || (bookings.filter(function(x){ return x.id === key; })[0]||{}).type || "hotel");
+        var title = (document.getElementById("bk_title_" + key).value || "").trim();
+        if(!title){ showToast("Give it a name first."); return; }
+        var confirmationNumber = (document.getElementById("bk_conf_" + key).value || "").trim();
+        var startDate = document.getElementById("bk_start_" + key).value || "";
+        var endEl = document.getElementById("bk_end_" + key);
+        var endDate = endEl ? (endEl.value || "") : "";
+        var cancelEl = document.getElementById("bk_cancel_" + key);
+        var cancellationDeadline = cancelEl ? (cancelEl.value || "") : "";
+        var notes = (document.getElementById("bk_notes_" + key).value || "").trim();
+        var flightEl = document.getElementById("bk_flightno_" + key);
+        var flightNumber = flightEl ? (flightEl.value || "").trim().toUpperCase() : "";
+        var payload = {
+          type: type, title: title, confirmationNumber: confirmationNumber,
+          startDate: startDate, endDate: endDate, cancellationDeadline: cancellationDeadline,
+          notes: notes, flightNumber: type === "flight" ? flightNumber : ""
+        };
+        // date columns in Postgres reject "" -- send null instead of a blank string
+        var dbPayload = Object.assign({}, payload, {
+          startDate: startDate || null, endDate: endDate || null, cancellationDeadline: cancellationDeadline || null
+        });
+        if(!store){ showToast("Still getting ready — give it a second and try again."); return; }
+        bookingCalOpenFor = null;
+        if(isNew){
+          addingBooking = false;
+          store.addBooking(trip.id, dbPayload).then(function(id){
+            clearBookingDraft();
+            if(!bookings.some(function(x){ return x.id === id; })){
+              var local = Object.assign({ id: id, tripId: trip.id, createdAt: Date.now(), lastStatus: null }, payload);
+              bookings = bookings.concat([local]);
+            }
+            renderMain();
+            maybeAutoCheckFlights();
+          }).catch(function(err){
+            console.error(err);
+            var detail = describeSupabaseError(err);
+            showToast("Couldn't save that booking" + (detail ? ": " + detail : " — please try again") + ". Your details are still here.");
+          });
+        } else {
+          var previous = bookings.filter(function(x){ return x.id === key; })[0];
+          bookings = bookings.map(function(x){ return x.id === key ? Object.assign({}, x, payload) : x; });
+          editingBookingId = null;
+          editingBookingType = null;
+          renderMain();
+          store.updateBooking(trip.id, key, dbPayload).then(function(){
+            clearBookingDraft();
+          }).catch(function(err){
+            console.error(err);
+            var detail = describeSupabaseError(err);
+            showToast("Couldn't save that change" + (detail ? ": " + detail : " — please try again") + ".");
+            if(previous){
+              bookings = bookings.map(function(x){ return x.id === key ? previous : x; });
+              renderMain();
+            }
+          });
+        }
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-bookdaterange]"), function(btn){
+      btn.addEventListener("click", function(){
+        var key = btn.getAttribute("data-bookdaterange");
+        if(bookingCalOpenFor === key){
+          bookingCalOpenFor = null;
+        } else {
+          bookingCalOpenFor = key;
+          var startEl = document.getElementById("bk_start_" + key);
+          var endEl = document.getElementById("bk_end_" + key);
+          bookingCalPendingStart = (startEl && startEl.value) || null;
+          bookingCalPendingEnd = (endEl && endEl.value) || null;
+          bookingCalViewMonth = bookingCalPendingStart ? new Date(bookingCalPendingStart + "T00:00:00") : new Date();
+        }
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-calnav]"), function(btn){
+      btn.addEventListener("click", function(){
+        var delta = Number(btn.getAttribute("data-calnav"));
+        var v = bookingCalViewMonth || new Date();
+        bookingCalViewMonth = new Date(v.getFullYear(), v.getMonth() + delta, 1);
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-calday]"), function(btn){
+      btn.addEventListener("click", function(){
+        var iso = btn.getAttribute("data-calday");
+        if(!bookingCalPendingStart || bookingCalPendingEnd || iso < bookingCalPendingStart){
+          bookingCalPendingStart = iso;
+          bookingCalPendingEnd = null;
+        } else {
+          bookingCalPendingEnd = iso;
+        }
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-calclear]"), function(btn){
+      btn.addEventListener("click", function(){
+        bookingCalPendingStart = null;
+        bookingCalPendingEnd = null;
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-caldone]"), function(btn){
+      btn.addEventListener("click", function(){
+        var key = btn.getAttribute("data-caldone");
+        var startEl = document.getElementById("bk_start_" + key);
+        var endEl = document.getElementById("bk_end_" + key);
+        var start = bookingCalPendingStart || "";
+        var end = (bookingCalPendingEnd && bookingCalPendingEnd !== start) ? bookingCalPendingEnd : "";
+        if(startEl) startEl.value = start;
+        if(endEl) endEl.value = end;
+        bookingCalOpenFor = null;
+        var typeNow = key === "new" ? newBookingType : (editingBookingType || (bookings.filter(function(x){ return x.id === key; })[0]||{}).type || "hotel");
+        saveBookingDraft(trip.id, key, captureBookingFormValues(key, typeNow));
+        renderMain();
+      });
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-bookdel]"), function(btn){
+      wireDelete(btn, function(){
+        var id = btn.getAttribute("data-bookdel");
+        var previous = bookings;
+        bookings = bookings.filter(function(x){ return x.id !== id; });
+        renderMain();
+        store.deleteBooking(trip.id, id).catch(function(err){
+          console.error(err);
+          showToast("Couldn't delete that booking — please try again.");
+          bookings = previous;
+          renderMain();
+        });
+      }, "Delete?");
+    });
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-flightcheck]"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-flightcheck");
+        var b = bookings.filter(function(x){ return x.id === id; })[0];
+        if(b) checkFlightStatus(b);
+      });
+    });
+  }
+
+  function renderMain(){
+    var trip = activeTrip();
+    if(!trip){
+      elMain.innerHTML =
+        '<div class="card welcome">' +
+          '<h2>Where did it all go?</h2>' +
+          '<p>Start a trip, then log every purchase the moment you make it — coffee, cabs, souvenirs. Layover Ledger keeps the running total so you never have to wonder at the airport.</p>' +
+          '<button type="button" class="btn" id="startTripBtn">Start your first trip</button>' +
+        '</div>';
+      document.getElementById("startTripBtn").addEventListener("click", openTripModal);
+      return;
+    }
+
+    function homeAmt(e){
+      return Number(e.convertedAmount != null ? e.convertedAmount : e.amount) || 0;
+    }
+    var total = expenses.reduce(function(sum,e){ return sum + homeAmt(e); }, 0);
+    var hasForeign = expenses.some(function(e){ return e.currency && e.currency !== trip.currency; });
+
+    // "Invert" the total: let the person tap it to peek at the same total
+    // converted into another currency — e.g. their home currency while
+    // the trip itself is tracked in dollars.
+    if(heroAltForTrip !== trip.id){
+      heroAltForTrip = trip.id;
+      heroAltCode = (trip.currency === "ILS") ? "USD" : "ILS";
+      heroShowingAlt = false;
+    }
+    var heroAmountHtml = heroShowingAlt
+      ? fmtMoney(roundMoney(total * crossRate(trip.currency, heroAltCode), heroAltCode), heroAltCode)
+      : fmtMoney(total, trip.currency);
+
+    var byCat = {};
+    expenses.forEach(function(e){
+      var id = CAT_MAP[e.category] ? e.category : "other";
+      byCat[id] = (byCat[id]||0) + homeAmt(e);
+    });
+    var rows = CATEGORIES
+      .map(function(c){ return { c:c, amt: byCat[c.id]||0 }; })
+      .filter(function(r){ return r.amt > 0; })
+      .sort(function(a,b){ return b.amt - a.amt; });
+
+    // "Paid with" breakdown -- cash vs. each named card. Color is tied to the
+    // entity (cash is always slot 1; each card keeps the same color every time
+    // it appears, based on the order it was first saved in the shared `cards`
+    // list) so a color never gets reassigned just because this trip's mix of
+    // payment methods differs from another trip's. A 5th-or-later card, or an
+    // expense with no payment method recorded (from before this field existed),
+    // folds into a shared "Other" slot rather than generating a new hue.
+    var PAY_COLORS = ["var(--pay-1)","var(--pay-2)","var(--pay-3)","var(--pay-4)","var(--pay-5)"];
+    var PAY_OTHER_COLOR = "var(--pay-6)";
+    var byPayment = {};
+    expenses.forEach(function(e){
+      var key, label, colorSlot;
+      if(e.paymentMethod === "cash"){
+        key = "cash"; label = "Cash"; colorSlot = 0;
+      } else if(e.paymentMethod === "card"){
+        var cardIdx = cards.findIndex(function(c){ return c.id === e.cardId; });
+        key = "card:" + (e.cardId || e.cardLabel || "unknown");
+        label = e.cardLabel || "Card";
+        colorSlot = (cardIdx >= 0 && cardIdx < PAY_COLORS.length - 1) ? (cardIdx + 1) : -1;
+      } else {
+        key = "none"; label = "Not specified"; colorSlot = -1;
+      }
+      if(!byPayment[key]) byPayment[key] = { label:label, amt:0, colorSlot:colorSlot };
+      byPayment[key].amt += homeAmt(e);
+    });
+    var payRows = Object.keys(byPayment)
+      .map(function(k){ return byPayment[k]; })
+      .filter(function(r){ return r.amt > 0; })
+      .map(function(r){ return { label:r.label, amt:r.amt, color: r.colorSlot >= 0 ? PAY_COLORS[r.colorSlot] : PAY_OTHER_COLOR }; })
+      .sort(function(a,b){ return b.amt - a.amt; });
+
+    var html = "";
+
+    // hero
+    html += '<section class="card hero">';
+    html += '<div class="eyebrow-row"><span class="eyebrow">Current trip</span>' +
+      '<div class="hero-actions">' +
+        '<button type="button" class="trip-note-btn" id="tripNoteBtn">' + (trip.note ? "Note" : "+ Note") + '</button>' +
+        '<button type="button" class="trip-del" id="tripDeleteBtn" data-del-trip="' + trip.id + '">Delete trip</button>' +
+      '</div></div>';
+    html += '<div class="trip-name">' + escapeHtml(trip.name) + '</div>';
+    html += '<div class="currency">' + (hasForeign
+      ? ('Totals in ' + trip.currency + ' — converted at rates as of ' + RATES_ASOF)
+      : ('Logging in ' + trip.currency)) + '</div>';
+    html += '<button type="button" class="total mono' + (heroShowingAlt ? ' alt' : '') + '" id="heroTotalBtn" title="Tap to convert">' + heroAmountHtml + '</button>';
+    html += '<div class="total-convert">' +
+      (heroShowingAlt
+        ? ('<span>≈ ' + trip.currency + ' ' + fmtMoney(total, trip.currency) + ', converted</span> <button type="button" id="heroBack">back to ' + trip.currency + '</button>')
+        : ('<span>tap the total to see it in</span> <select id="heroAltSel" class="mono"></select>')
+      ) +
+    '</div>';
+    if(trip.budget){
+      var pct = Math.min(100, (total / trip.budget) * 100);
+      var over = total > trip.budget;
+      html += '<div class="budget-row">' +
+        '<div class="budget-track"><div class="budget-fill' + (over?' over':'') + '" style="width:' + pct.toFixed(1) + '%"></div></div>' +
+        '<div class="budget-note ' + (over?'bad':'good') + '">' +
+          '<span class="flag">' + (over ? '▲ over' : '▼ under') + '</span>' +
+          '<span>budget of ' + fmtMoney(trip.budget, trip.currency) + ' by ' + fmtMoney(Math.abs(trip.budget-total), trip.currency) + '</span>' +
+        '</div></div>';
+    }
+    if(editingTripNote === trip.id){
+      html += '<div class="trip-note trip-note-edit">' +
+        '<textarea id="tripNoteInput" maxlength="4000" placeholder="jot down anything about this trip — addresses, plans, reminders, whatever…">' + escapeHtml(trip.note||"") + '</textarea>' +
+        '<div class="trip-note-actions">' +
+          '<button type="button" class="edit-save" id="tripNoteSave">Save</button>' +
+          '<button type="button" class="edit-cancel" id="tripNoteCancel">Cancel</button>' +
+        '</div></div>';
+    } else if(trip.note){
+      html += '<div class="trip-note"><div class="trip-note-text">' + escapeHtml(trip.note) + '</div></div>';
+    }
+    html += '</section>';
+
+    // tabs -- Expenses (breakdown + purchase list) and Bookings are peers,
+    // not both crammed onto one screen at once.
+    html += '<div class="tab-bar">' +
+      '<button type="button" class="tab-btn' + (activeTripTab === "expenses" ? " active" : "") + '" data-triptab="expenses">Expenses</button>' +
+      '<button type="button" class="tab-btn' + (activeTripTab === "bookings" ? " active" : "") + '" data-triptab="bookings">Bookings' +
+        (bookings.length ? ' <span class="tab-count">' + bookings.length + '</span>' : '') +
+      '</button>' +
+    '</div>';
+
+    if(activeTripTab === "bookings"){
+    html += renderBookingsSection(trip);
+    } else {
+
+    // breakdown
+    if(rows.length){
+      html += '<section class="card breakdown">';
+      html += '<div class="section-title"><h2>Where it went</h2></div>';
+      html += '<div class="stack">';
+      rows.forEach(function(r){
+        var w = (r.amt/total*100).toFixed(2);
+        html += '<div class="seg" style="flex:0 0 ' + w + '%; background:' + r.c.color + '"></div>';
+      });
+      html += '</div>';
+      html += '<div class="legend">';
+      rows.forEach(function(r){
+        var w = (r.amt/total*100).toFixed(0);
+        html += '<div class="legend-row">' +
+          '<span class="dot" style="background:' + r.c.color + '"></span>' +
+          '<span class="lbl">' + r.c.label + '</span>' +
+          '<span class="pct">' + w + '%</span>' +
+          '<span class="amt mono">' + fmtMoney(r.amt, trip.currency) + '</span>' +
+          '</div>';
+      });
+      html += '</div></section>';
+    }
+
+    // "Paid with" breakdown -- same stack+legend treatment as the category
+    // breakdown above, just keyed by cash/card instead of category.
+    if(payRows.length){
+      html += '<section class="card breakdown">';
+      html += '<div class="section-title"><h2>Paid with</h2></div>';
+      html += '<div class="stack">';
+      payRows.forEach(function(r){
+        var w = (r.amt/total*100).toFixed(2);
+        html += '<div class="seg" style="flex:0 0 ' + w + '%; background:' + r.color + '"></div>';
+      });
+      html += '</div>';
+      html += '<div class="legend">';
+      payRows.forEach(function(r){
+        var w = (r.amt/total*100).toFixed(0);
+        html += '<div class="legend-row">' +
+          '<span class="dot" style="background:' + r.color + '"></span>' +
+          '<span class="lbl">' + escapeHtml(r.label) + '</span>' +
+          '<span class="pct">' + w + '%</span>' +
+          '<span class="amt mono">' + fmtMoney(r.amt, trip.currency) + '</span>' +
+          '</div>';
+      });
+      html += '</div></section>';
+    }
+
+    // expense list
+    html += '<section class="card expenses">';
+    html += '<div class="section-title"><h2>Every purchase</h2></div>';
+    if(!expenses.length){
+      html += '<div class="empty"><h3>Nothing logged yet</h3><p>Add your first purchase down below — it takes about three seconds.</p></div>';
+    } else {
+      expenses.forEach(function(e){
+        var cat = CAT_MAP[e.category] || CAT_MAP.other;
+        var eCurrency = e.currency || trip.currency;
+        var eRate = (e.rate != null) ? Number(e.rate) : 1;
+        var isForeign = eCurrency !== trip.currency;
+
+        var payLabel = e.paymentMethod === "card" ? (e.cardLabel || "Card") : (e.paymentMethod === "cash" ? "Cash" : null);
+        var noteLine = [e.note, payLabel].filter(Boolean).join(" · ");
+        html += '<div class="expense-row" data-exp="' + e.id + '">' +
+          '<button type="button" class="expense-date mono" data-editexp="' + e.id + '">' +
+            '<span class="day">' + formatDateShort(e.date) + '</span>' +
+            '<span class="time">' + formatTimeShort(e.time) + '</span>' +
+          '</button>' +
+          '<div class="expense-mid">' +
+            '<div class="cat-label"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + cat.color + ';margin-right:6px;"></span>' + cat.label + '</div>' +
+            (noteLine ? '<div class="note">' + escapeHtml(noteLine) + '</div>' : '') +
+            (isForeign ? '<div class="orig-fx">' + fmtMoney(Number(e.amount)||0, eCurrency) + ' · rate ' + eRate.toFixed(4) + '</div>' : '') +
+          '</div>' +
+          '<div class="expense-amt mono">' + fmtMoney(homeAmt(e), trip.currency) + '</div>' +
+          '<div class="expense-actions">' +
+            '<button type="button" class="expense-edit-btn" data-editexp="' + e.id + '">Edit</button>' +
+            '<button type="button" class="expense-del" data-del="' + e.id + '">Delete</button>' +
+          '</div>' +
+          '</div>';
+      });
+    }
+    html += '</section>';
+
+    }
+
+    elMain.innerHTML = html;
+
+    wireBookings(trip);
+
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-triptab]"), function(btn){
+      btn.addEventListener("click", function(){
+        activeTripTab = btn.getAttribute("data-triptab");
+        renderMain();
+        renderDock();
+      });
+    });
+
+    var heroTotalBtn = document.getElementById("heroTotalBtn");
+    if(heroTotalBtn){
+      heroTotalBtn.addEventListener("click", function(){
+        heroShowingAlt = !heroShowingAlt;
+        renderMain();
+      });
+    }
+    var heroBackBtn = document.getElementById("heroBack");
+    if(heroBackBtn){
+      heroBackBtn.addEventListener("click", function(e){
+        e.stopPropagation();
+        heroShowingAlt = false;
+        renderMain();
+      });
+    }
+    var heroAltSel = document.getElementById("heroAltSel");
+    if(heroAltSel){
+      heroAltSel.innerHTML = currencyOptionsHtml(heroAltCode);
+      heroAltSel.addEventListener("click", function(e){ e.stopPropagation(); });
+      heroAltSel.addEventListener("change", function(){
+        heroAltCode = heroAltSel.value;
+      });
+    }
+
+    var tripNoteBtn = document.getElementById("tripNoteBtn");
+    if(tripNoteBtn){
+      tripNoteBtn.addEventListener("click", function(){
+        editingTripNote = trip.id;
+        renderMain();
+        var ta = document.getElementById("tripNoteInput");
+        if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      });
+    }
+    var tripNoteCancel = document.getElementById("tripNoteCancel");
+    if(tripNoteCancel){
+      tripNoteCancel.addEventListener("click", function(){
+        editingTripNote = null;
+        renderMain();
+      });
+    }
+    var tripNoteSave = document.getElementById("tripNoteSave");
+    if(tripNoteSave){
+      tripNoteSave.addEventListener("click", function(){
+        var ta = document.getElementById("tripNoteInput");
+        var newNote = ta ? ta.value.trim() : "";
+        var tripId = trip.id;
+        var previousNote = trip.note;
+        trips = trips.map(function(t){ return t.id === tripId ? Object.assign({}, t, { note: newNote }) : t; });
+        editingTripNote = null;
+        renderMain();
+        store.updateTrip(tripId, { note: newNote }).catch(function(err){
+          console.error(err);
+          showToast("Couldn't save that note — please try again.");
+          trips = trips.map(function(t){ return t.id === tripId ? Object.assign({}, t, { note: previousNote }) : t; });
+          if(activeTripId === tripId) renderMain();
+        });
+      });
+    }
+
+    var tripDeleteBtn = document.getElementById("tripDeleteBtn");
+    if(tripDeleteBtn){
+      wireDelete(tripDeleteBtn, function(){
+        var tripId = trip.id;
+        var removedTrip = trip;
+        trips = trips.filter(function(t){ return t.id !== tripId; });
+        var nextId = trips.length ? trips[trips.length-1].id : null;
+        switchActiveTrip(nextId);
+        store.deleteTrip(tripId).catch(function(err){
+          console.error(err);
+          showToast("Couldn't delete the trip — please try again.");
+          if(!trips.some(function(t){ return t.id === tripId; })){
+            trips = trips.concat([removedTrip]);
+          }
+          switchActiveTrip(tripId);
+        });
+      }, "Delete everything?");
+    }
+
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-del]"), function(btn){
+      wireDelete(btn, function(){
+        var expId = btn.getAttribute("data-del");
+        var tripIdAtDelete = activeTripId;
+        var removed = expenses.filter(function(x){ return x.id === expId; })[0];
+        expenses = expenses.filter(function(x){ return x.id !== expId; });
+        renderMain();
+        store.deleteExpense(tripIdAtDelete, expId).catch(function(err){
+          console.error(err);
+          showToast("Couldn't delete that — please try again.");
+          if(tripIdAtDelete === activeTripId && removed && !expenses.some(function(x){ return x.id === expId; })){
+            expenses = expenses.concat([removed]);
+            renderMain();
+          }
+        });
+      });
+    });
+
+    Array.prototype.forEach.call(elMain.querySelectorAll("[data-editexp]"), function(btn){
+      btn.addEventListener("click", function(){
+        openExpenseEditModal(btn.getAttribute("data-editexp"));
+      });
+    });
+  }
+
+  function wireDelete(btn, onConfirm, confirmText){
+    var armed = false, timer = null;
+    var original = btn.textContent;
+    btn.addEventListener("click", function(){
+      if(!armed){
+        armed = true;
+        btn.textContent = confirmText || "Sure?";
+        btn.classList.add("confirming");
+        timer = setTimeout(function(){
+          armed = false; btn.textContent = original; btn.classList.remove("confirming");
+        }, 2500);
+      } else {
+        clearTimeout(timer);
+        onConfirm();
+      }
+    });
+  }
+
+  function describeSupabaseError(err){
+    if(!err) return "";
+    var msg = err.message || err.error_description || err.msg || "";
+    if(err.code) msg = (msg ? msg + " " : "") + "(" + err.code + ")";
+    return msg;
+  }
+
+  var elToast = null;
+  function showToast(msg, tone){
+    if(!elToast){
+      elToast = document.createElement("div");
+      elToast.setAttribute("style",
+        "position:fixed;left:16px;right:16px;bottom:calc(100px + env(safe-area-inset-bottom,0px));" +
+        "z-index:60;color:#fff;padding:11px 14px;border-radius:10px;" +
+        "font-size:13px;font-weight:600;box-shadow:var(--shadow);text-align:center;");
+      document.body.appendChild(elToast);
+    }
+    elToast.style.background = tone === "info" ? "var(--accent)" : "var(--critical)";
+    elToast.textContent = msg;
+    elToast.style.display = "block";
+    clearTimeout(elToast._t);
+    elToast._t = setTimeout(function(){ elToast.style.display = "none"; }, 4500);
+  }
+  window.addEventListener("unhandledrejection", function(e){
+    console.error("Unhandled:", e.reason);
+    showToast("Something didn't save. Please try again.");
+  });
+
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" })[c];
+    });
+  }
+
+  /* ---------------- trip modal ---------------- */
+
+  var elTripNameFlag = document.getElementById("tripNameFlag");
+  function openTripModal(){
+    elTripOverlay.hidden = false;
+    document.getElementById("tripName").value = "";
+    document.getElementById("tripBudget").value = "";
+    if(elTripNameFlag) elTripNameFlag.textContent = "";
+    document.getElementById("tripName").focus();
+  }
+  function closeTripModal(){ elTripOverlay.hidden = true; }
+
+  document.getElementById("tripCancel").addEventListener("click", closeTripModal);
+  elTripOverlay.addEventListener("click", function(e){ if(e.target === elTripOverlay) closeTripModal(); });
+  document.getElementById("tripName").addEventListener("input", function(){
+    if(elTripNameFlag) elTripNameFlag.textContent = detectCountryFlag(this.value);
+  });
+
+  elTripForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = document.getElementById("tripName").value.trim();
+    var currency = document.getElementById("tripCurrency").value;
+    var budgetRaw = document.getElementById("tripBudget").value;
+    if(!name) return;
+    if(!store){
+      showToast("Still getting ready — give it a second and try again.");
+      return;
+    }
+    var payload = { name: name, currency: currency, budget: budgetRaw ? Number(budgetRaw) : null };
+    var submitBtn = elTripForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Starting…";
+    store.addTrip(payload).then(function(id){
+      // Don't wait on the live sync round-trip to show the new trip —
+      // add it to the in-memory list immediately; the real snapshot will
+      // reconcile it (and dedupe by id) whenever it arrives.
+      if(!trips.some(function(t){ return t.id === id; })){
+        var local = Object.assign({ id: id, createdAt: Date.now() }, payload);
+        trips = trips.concat([local]);
+      }
+      closeTripModal();
+      switchActiveTrip(id);
+    }).catch(function(err){
+      console.error(err);
+      showToast("Couldn't create the trip — please try again.");
+    }).then(function(){
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Start trip";
+    });
+  });
+
+  /* ---------------- expense edit modal ---------------- */
+
+  var elExpenseEditOverlay = document.getElementById("expenseEditOverlay");
+  var elExpenseEditForm = document.getElementById("expenseEditForm");
+  var elEeAmount = document.getElementById("ee_amount");
+  var elEeCurrency = document.getElementById("ee_currency");
+  var elEeRateField = document.getElementById("ee_rate_field");
+  var elEeRate = document.getElementById("ee_rate");
+  var elEeRateHint = document.getElementById("ee_rate_hint");
+  var elEeCategory = document.getElementById("ee_category");
+  var elEeDate = document.getElementById("ee_date");
+  var elEeTime = document.getElementById("ee_time");
+  var elEeNote = document.getElementById("ee_note");
+  var elEePayCash = document.getElementById("eePayCashBtn");
+  var elEePayCard = document.getElementById("eePayCardBtn");
+  var elEeCardSel = document.getElementById("eeCardSel");
+  var elEeNewCardRow = document.getElementById("eeNewCardRow");
+  var elEeNewCardName = document.getElementById("eeNewCardName");
+
+  function refreshExpenseEditPaymentUI(){
+    elEePayCash.classList.toggle("active", editingPaymentMethod === "cash");
+    elEePayCard.classList.toggle("active", editingPaymentMethod === "card");
+    var addingCard = editingPaymentCardId === "__new__";
+    if(editingPaymentMethod === "card"){
+      elEeNewCardRow.hidden = !addingCard;
+      elEeCardSel.hidden = addingCard;
+      if(!addingCard){
+        elEeCardSel.innerHTML = cardOptionsHtml(editingPaymentCardId);
+      }
+    } else {
+      elEeNewCardRow.hidden = true;
+      elEeCardSel.hidden = true;
+    }
+  }
+  function refreshExpenseEditRateUI(){
+    var t = activeTrip();
+    if(!t) return;
+    var showRate = elEeCurrency.value !== t.currency;
+    elEeRateField.hidden = !showRate;
+    if(showRate) elEeRateHint.textContent = "(" + elEeCurrency.value + " → " + t.currency + ")";
+  }
+
+  function openExpenseEditModal(expId){
+    var e = expenses.filter(function(x){ return x.id === expId; })[0];
+    var t = activeTrip();
+    if(!e || !t) return;
+    editingExpenseId = expId;
+    editingPaymentMethod = e.paymentMethod || "cash";
+    editingPaymentCardId = e.cardId || null;
+
+    elEeAmount.value = (e.amount != null) ? e.amount : "";
+    elEeCurrency.innerHTML = currencyOptionsHtml(e.currency || t.currency);
+    elEeRate.value = (e.rate != null) ? Number(e.rate) : 1;
+    refreshExpenseEditRateUI();
+    elEeCategory.value = e.category || "other";
+    elEeDate.value = e.date || todayISO();
+    elEeTime.value = e.time || "00:00";
+    elEeNote.value = e.note || "";
+    refreshExpenseEditPaymentUI();
+
+    elExpenseEditOverlay.hidden = false;
+    elEeAmount.focus();
+  }
+  function closeExpenseEditModal(){
+    elExpenseEditOverlay.hidden = true;
+    editingExpenseId = null;
+    editingPaymentMethod = null;
+    editingPaymentCardId = null;
+  }
+
+  document.getElementById("expenseEditCancel").addEventListener("click", closeExpenseEditModal);
+  elExpenseEditOverlay.addEventListener("click", function(e){ if(e.target === elExpenseEditOverlay) closeExpenseEditModal(); });
+
+  elEeCurrency.addEventListener("change", function(){
+    var t = activeTrip();
+    if(t) elEeRate.value = crossRate(elEeCurrency.value, t.currency).toFixed(4);
+    refreshExpenseEditRateUI();
+  });
+
+  elEePayCash.addEventListener("click", function(){
+    editingPaymentMethod = "cash";
+    editingPaymentCardId = null;
+    refreshExpenseEditPaymentUI();
+  });
+  elEePayCard.addEventListener("click", function(){
+    editingPaymentMethod = "card";
+    if(!editingPaymentCardId || editingPaymentCardId === "__new__"){
+      editingPaymentCardId = cards.length ? cards[0].id : "__new__";
+    }
+    refreshExpenseEditPaymentUI();
+  });
+  elEeCardSel.addEventListener("change", function(){
+    editingPaymentCardId = elEeCardSel.value; // may be "__new__"
+    refreshExpenseEditPaymentUI();
+  });
+  document.getElementById("eeSaveCardBtn").addEventListener("click", function(){
+    var name = elEeNewCardName.value.trim();
+    if(!name) return;
+    if(!store){
+      showToast("Still getting ready — give it a second and try again.");
+      return;
+    }
+    store.addCard({ name: name }).then(function(id){
+      if(!cards.some(function(c){ return c.id === id; })){
+        cards = cards.concat([{ id: id, name: name, createdAt: Date.now() }]);
+      }
+      editingPaymentCardId = id;
+      refreshExpenseEditPaymentUI();
+    }).catch(function(err){
+      console.error(err);
+      showToast("Couldn't save that card — please try again.");
+    });
+  });
+
+  elExpenseEditForm.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var t = activeTrip();
+    var expId = editingExpenseId;
+    if(!t || !expId) return;
+    var original = expenses.filter(function(x){ return x.id === expId; })[0];
+    if(!original) return;
+
+    var newAmount = Number(elEeAmount.value);
+    if(!newAmount || newAmount <= 0){
+      showToast("Enter an amount first.");
+      return;
+    }
+    var newCategory = elEeCategory.value || "other";
+    var newDate = elEeDate.value || todayISO();
+    var newTime = elEeTime.value || "00:00";
+    var newNote = elEeNote.value.trim();
+    var newCurrency = elEeCurrency.value || t.currency;
+    var newRate = Number(elEeRate.value);
+    if(!newRate || newRate <= 0) newRate = crossRate(newCurrency, t.currency);
+    var newConverted = roundMoney(newAmount * newRate, t.currency);
+
+    var newMethod = editingPaymentMethod || "cash";
+    var newCardId = null, newCardLabel = null;
+    if(newMethod === "card"){
+      newCardId = editingPaymentCardId;
+      if(newCardId === "__new__") newCardId = null;
+      var c = cardById(newCardId);
+      newCardLabel = c ? c.name : null;
+      if(!newCardId || !newCardLabel){
+        showToast("Pick a card, or add one, before saving.");
+        return;
+      }
+    }
+
+    var patch = {
+      amount: newAmount, category: newCategory, note: newNote,
+      date: newDate, time: newTime, dt: newDate + "T" + newTime,
+      currency: newCurrency, rate: newRate, convertedAmount: newConverted,
+      paymentMethod: newMethod,
+      cardId: newMethod === "card" ? newCardId : null,
+      cardLabel: newMethod === "card" ? newCardLabel : null
+    };
+
+    var previous = Object.assign({}, original);
+    expenses = expenses.map(function(x){ return x.id === expId ? Object.assign({}, x, patch) : x; });
+    closeExpenseEditModal();
+    renderMain();
+
+    store.updateExpense(t.id, expId, patch).catch(function(err){
+      console.error(err);
+      var detail = describeSupabaseError(err);
+      showToast("Couldn't save that change" + (detail ? ": " + detail : " — please try again") + ".");
+      expenses = expenses.map(function(x){ return x.id === expId ? previous : x; });
+      renderMain();
+    });
+  });
+
+  /* ---------------- expense form ---------------- */
+
+  var elExpenseForm = document.getElementById("expenseForm");
+  var elNoteToggle = document.getElementById("noteToggle");
+  var elNoteInput = document.getElementById("expenseNote");
+  var elDtToggle = document.getElementById("dtToggle");
+  var elDtRow = document.getElementById("dtRow");
+
+  elNoteToggle.addEventListener("click", function(){
+    var showing = !elNoteInput.hidden;
+    elNoteInput.hidden = showing;
+    elNoteToggle.textContent = showing ? "add a note" : "hide note";
+    if(!showing) elNoteInput.focus();
+  });
+
+  elDtToggle.addEventListener("click", function(){
+    var showing = !elDtRow.hidden;
+    elDtRow.hidden = showing;
+    elDtToggle.textContent = showing ? "date & time" : "hide date & time";
+  });
+
+  var elPayCash = document.getElementById("payCashBtn");
+  var elPayCard = document.getElementById("payCardBtn");
+  var elCardSel = document.getElementById("expenseCard");
+  var elNewCardRow = document.getElementById("payNewCardRow");
+  var elNewCardName = document.getElementById("newCardName");
+
+  function refreshDockPaymentUI(){
+    if(!elPayCash) return;
+    elPayCash.classList.toggle("active", paymentMethod === "cash");
+    elPayCard.classList.toggle("active", paymentMethod === "card");
+    elCardSel.hidden = paymentMethod !== "card";
+    elNewCardRow.hidden = true;
+    if(paymentMethod === "card"){
+      elCardSel.innerHTML = cardOptionsHtml(paymentCardId);
+      if(!paymentCardId && cards.length){
+        paymentCardId = cards[0].id;
+        paymentCardLabel = cards[0].name;
+        elCardSel.value = paymentCardId;
+      }
+      if(!cards.length){
+        elNewCardRow.hidden = false;
+        elNewCardName.focus();
+      }
+    }
+  }
+
+  elPayCash.addEventListener("click", function(){
+    paymentMethod = "cash";
+    refreshDockPaymentUI();
+  });
+  elPayCard.addEventListener("click", function(){
+    paymentMethod = "card";
+    refreshDockPaymentUI();
+  });
+  elCardSel.addEventListener("change", function(){
+    if(elCardSel.value === "__new__"){
+      elNewCardRow.hidden = false;
+      elNewCardName.value = "";
+      elNewCardName.focus();
+      return;
+    }
+    paymentCardId = elCardSel.value;
+    var c = cardById(paymentCardId);
+    paymentCardLabel = c ? c.name : null;
+  });
+  document.getElementById("saveCardBtn").addEventListener("click", function(){
+    var name = elNewCardName.value.trim();
+    if(!name) return;
+    if(!store){
+      showToast("Still getting ready — give it a second and try again.");
+      return;
+    }
+    store.addCard({ name: name }).then(function(id){
+      if(!cards.some(function(c){ return c.id === id; })){
+        cards = cards.concat([{ id: id, name: name, createdAt: Date.now() }]);
+      }
+      paymentCardId = id;
+      paymentCardLabel = name;
+      elNewCardRow.hidden = true;
+      refreshDockPaymentUI();
+    }).catch(function(err){
+      console.error(err);
+      showToast("Couldn't save that card — please try again.");
+    });
+  });
+
+  document.getElementById("expenseAmount").addEventListener("input", updateConvertHint);
+  document.getElementById("expenseCurrency").addEventListener("change", updateConvertHint);
+
+  elExpenseForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var trip = activeTrip();
+    if(!trip) return;
+    var amount = Number(document.getElementById("expenseAmount").value);
+    if(!amount || amount <= 0) return;
+    if(!store){
+      showToast("Still getting ready — give it a second and try again.");
+      return;
+    }
+    if(paymentMethod === "card" && !paymentCardId){
+      showToast("Pick a card, or add one, before logging this.");
+      return;
+    }
+    var category = document.getElementById("expenseCategory").value;
+    var note = elNoteInput.value.trim();
+    var currency = document.getElementById("expenseCurrency").value || trip.currency;
+    var rate = crossRate(currency, trip.currency);
+    var convertedAmount = roundMoney(amount * rate, trip.currency);
+    var dateVal = document.getElementById("expenseDate").value || todayISO();
+    var timeVal = document.getElementById("expenseTime").value || nowHM();
+    var tripIdAtSubmit = trip.id;
+    var payload = {
+      amount: amount, category: category, note: note,
+      date: dateVal, time: timeVal, dt: dateVal + "T" + timeVal,
+      currency: currency, rate: rate, convertedAmount: convertedAmount,
+      paymentMethod: paymentMethod,
+      cardId: paymentMethod === "card" ? paymentCardId : null,
+      cardLabel: paymentMethod === "card" ? paymentCardLabel : null
+    };
+    var submitBtn = elExpenseForm.querySelector(".dock-submit");
+    submitBtn.disabled = true;
+
+    store.addExpense(tripIdAtSubmit, payload).then(function(id){
+      // Same reasoning as new trips: show it now, let the live snapshot
+      // reconcile (and dedupe by id) once it catches up.
+      if(tripIdAtSubmit === activeTripId && !expenses.some(function(x){ return x.id === id; })){
+        var local = Object.assign({ id: id, createdAt: Date.now() }, payload);
+        expenses = [local].concat(expenses);
+        renderMain();
+      }
+      document.getElementById("expenseAmount").value = "";
+      elNoteInput.value = "";
+      elNoteInput.hidden = true;
+      elNoteToggle.textContent = "add a note";
+      // reset date/time defaults to "now" for the next entry
+      document.getElementById("expenseDate").value = todayISO();
+      document.getElementById("expenseTime").value = nowHM();
+      elDtRow.hidden = true;
+      elDtToggle.textContent = "date & time";
+      updateConvertHint();
+      document.getElementById("expenseAmount").focus();
+    }).catch(function(err){
+      console.error(err);
+      showToast("Couldn't log that expense — please try again.");
+    }).then(function(){
+      submitBtn.disabled = false;
+    });
+  });
+
+  /* ---------------- populate selects ---------------- */
+
+  function populateSelects(){
+    var tripCurrencySel = document.getElementById("tripCurrency");
+    CURRENCIES.forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c[0]; o.textContent = c[1];
+      tripCurrencySel.appendChild(o);
+    });
+
+    var expenseCatSel = document.getElementById("expenseCategory");
+    CATEGORIES.forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c.id; o.textContent = c.label;
+      expenseCatSel.appendChild(o);
+    });
+
+    elDockCurrencySel = document.getElementById("expenseCurrency");
+    CURRENCIES.forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c[0]; o.textContent = c[0];
+      elDockCurrencySel.appendChild(o);
+    });
+
+    var eeCategorySel = document.getElementById("ee_category");
+    CATEGORIES.forEach(function(c){
+      var o = document.createElement("option");
+      o.value = c.id; o.textContent = c.label;
+      eeCategorySel.appendChild(o);
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+
+  function renderShell(){
+    // Draw the static chrome right away -- don't let auth/storage setup
+    // gate the first paint. Trips/expenses populate once signed in.
+    populateSelects();
+    renderAll();
+  }
+
+  function startStore(user){
+    if(store && typeof store.teardown === "function") store.teardown();
+    store = new SupabaseStore(sb, user.id);
+    store.subscribeTrips(onTripsUpdate);
+    store.subscribeCards(function(list){
+      cards = list;
+      renderDock();
+    });
+  }
+
+  function stopStore(){
+    if(store && typeof store.teardown === "function") store.teardown();
+    store = null;
+    trips = [];
+    activeTripId = null;
+    expenses = [];
+    bookings = [];
+    if(unsubExpenses){ unsubExpenses(); unsubExpenses = null; }
+    if(unsubBookings){ unsubBookings(); unsubBookings = null; }
+    renderAll();
+  }
+
+  function boot(){
+    renderShell();
+  }
+
+  /* ---------------- Google sign-in (via Supabase Auth) ----------------
+     Real authentication this time: Supabase's Auth service runs the
+     OAuth round-trip with Google and hands this page back a signed-in
+     session. The gate shows until Supabase confirms a session; "Sign
+     out" from the account menu ends it and shows the gate again --
+     trip data itself lives in Supabase, scoped to the account, so it
+     is there again on the next sign-in from any device. */
+  var elAccountToggle = document.getElementById("accountToggle");
+  var elAuthGate = document.getElementById("authGate");
+  var elAccountOverlay = document.getElementById("accountOverlay");
+  var currentUser = null;
+
+  function refreshAccountToggle(){
+    if(!elAccountToggle) return;
+    if(currentUser){
+      var meta = currentUser.user_metadata || {};
+      var label = meta.full_name ? meta.full_name.split(" ")[0] : (currentUser.email || "Account");
+      elAccountToggle.textContent = label;
+      elAccountToggle.title = "Signed in as " + (currentUser.email || label) + " -- tap to manage";
+    } else {
+      elAccountToggle.textContent = "Account";
+      elAccountToggle.title = "Sign in";
+    }
+  }
+
+  function showAuthGate(message){
+    if(!elAuthGate) return;
+    elAuthGate.hidden = false;
+    elAuthGate.innerHTML =
+      '<div class="auth-card">' +
+        '<div class="auth-icon">\ud83d\udc64</div>' +
+        '<h2>Welcome to Layover Ledger</h2>' +
+        '<p>' + escapeHtml(message || "Sign in with Google to see your trips.") + '</p>' +
+        '<button type="button" class="auth-submit" id="googleSignInBtn">Sign in with Google</button>' +
+        '<p class="auth-note">Your trips sync to your Google account and are only visible to you.</p>' +
+      '</div>';
+    document.getElementById("googleSignInBtn").addEventListener("click", function(){
+      if(!sb){ showToast("Sign-in isn't set up yet -- add your Supabase keys near the top of the file."); return; }
+      sb.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+    });
+  }
+
+  function hideAuthGate(){
+    if(!elAuthGate) return;
+    elAuthGate.hidden = true;
+    elAuthGate.innerHTML = "";
+  }
+
+  function closeAccountModal(){
+    if(!elAccountOverlay) return;
+    elAccountOverlay.hidden = true;
+  }
+  function openAccountModal(){
+    if(!elAccountOverlay || !currentUser) return;
+    elAccountOverlay.hidden = false;
+    elAccountOverlay.innerHTML =
+      '<form class="modal" id="accountForm">' +
+        '<h3>Account</h3>' +
+        '<p class="account-explain">Signed in as ' + escapeHtml(currentUser.email || "") + ' via Google.</p>' +
+        '<button type="button" class="account-signout-btn" id="acctSignOutBtn">Sign out</button>' +
+        '<div class="modal-actions">' +
+          '<button type="button" class="btn-secondary" id="acctCancel">Close</button>' +
+        '</div>' +
+      '</form>';
+    document.getElementById("acctCancel").addEventListener("click", closeAccountModal);
+    document.getElementById("acctSignOutBtn").addEventListener("click", function(){
+      closeAccountModal();
+      sb.auth.signOut();
+    });
+  }
+
+  function initAccount(){
+    if(elAccountToggle) elAccountToggle.addEventListener("click", function(){
+      if(currentUser) openAccountModal(); else showAuthGate();
+    });
+    if(elAccountOverlay){
+      elAccountOverlay.addEventListener("click", function(e){ if(e.target === elAccountOverlay) closeAccountModal(); });
+    }
+  }
+
+  function handleSession(session){
+    var user = session ? session.user : null;
+    if(user){
+      currentUser = user;
+      hideAuthGate();
+      refreshAccountToggle();
+      startStore(user);
+    } else {
+      currentUser = null;
+      closeAccountModal();
+      stopStore();
+      refreshAccountToggle();
+      showAuthGate();
+    }
+  }
+
+  function initSupabaseAuth(){
+    if(!window.supabase || typeof window.supabase.createClient !== "function"){
+      showAuthGate("This page can't reach Supabase -- check the supabase-js script tag.");
+      return;
+    }
+    if(!SUPABASE_URL || SUPABASE_URL.indexOf("YOUR_") === 0 || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.indexOf("YOUR_") === 0){
+      showAuthGate("Add your Supabase project URL and anon key near the top of this file to enable sign-in.");
+      return;
+    }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sb.auth.onAuthStateChange(function(event, session){ handleSession(session); });
+    sb.auth.getSession().then(function(res){ handleSession(res.data.session); });
+  }
+
+  /* ---------------- theme (light / dark / auto) ----------------
+     "Auto" follows the viewer's own light/dark setting; the other two
+     are an explicit override this page remembers on this device. */
+  var THEME_KEY = "layover-ledger-theme";
+  function applyTheme(mode){
+    if(mode === "light" || mode === "dark"){
+      document.documentElement.setAttribute("data-theme", mode);
+    } else {
+      mode = "auto";
+      document.documentElement.removeAttribute("data-theme");
+    }
+    try{ localStorage.setItem(THEME_KEY, mode); }catch(e){}
+    var btn = document.getElementById("themeToggle");
+    if(btn){
+      btn.textContent = mode === "auto" ? "Auto" : (mode === "light" ? "White bg" : "Black bg");
+    }
+  }
+  function initTheme(){
+    var saved = "auto";
+    try{ saved = localStorage.getItem(THEME_KEY) || "auto"; }catch(e){}
+    applyTheme(saved);
+    var btn = document.getElementById("themeToggle");
+    if(btn){
+      btn.addEventListener("click", function(){
+        var current = document.documentElement.getAttribute("data-theme") || "auto";
+        var next = current === "auto" ? "light" : (current === "light" ? "dark" : "auto");
+        applyTheme(next);
+      });
+    }
+  }
+  initTheme();
+
+  initAccount();
+  boot();
+  initSupabaseAuth();
+
+  /* ---------------- install as an app (PWA) ----------------
+     Registering this lets phones/desktops offer "Add to Home Screen" /
+     "Install app" and lets the shell keep working offline once installed.
+     It never touches Supabase calls -- see sw.js, which only caches
+     same-origin requests and lets everything else (auth, data, fonts)
+     pass straight through. */
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
